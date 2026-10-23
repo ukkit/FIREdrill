@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FIREdrill</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: itemised input ledgers on the left, a sticky two-answer results panel on the right; stacks on phones */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --sunk:#f8f9f7; --ink:#1d2a2b; --muted:#5d6b6a; --line:#d9dedb;
+  --accent:#0f6b63; --accent-soft:#dcefeb; --gold:#b97c0c; --gold-soft:#f6ead1;
+  --good:#2f7d3b; --good-bg:#e2f1e3; --bad:#b23a2e; --bad-bg:#f8e3e0;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#121817; --surface:#1a2221; --sunk:#151c1b; --ink:#e4ebe9; --muted:#9aa9a6; --line:#2c3836;
+  --accent:#4cc2b3; --accent-soft:#1d3532; --gold:#e8b14a; --gold-soft:#3a2f17;
+  --good:#7fcf8a; --good-bg:#1d3322; --bad:#f08b7f; --bad-bg:#3a201d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121817; --surface:#1a2221; --sunk:#151c1b; --ink:#e4ebe9; --muted:#9aa9a6; --line:#2c3836;
+  --accent:#4cc2b3; --accent-soft:#1d3532; --gold:#e8b14a; --gold-soft:#3a2f17;
+  --good:#7fcf8a; --good-bg:#1d3322; --bad:#f08b7f; --bad-bg:#3a201d; color-scheme:dark}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+img{max-width:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.5}
+.wrap{max-width:1240px;margin:0 auto;padding-block:28px 48px;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,4vw,2.4rem);margin:0;letter-spacing:-.01em;text-wrap:balance}
+header h1 em,.report h1 em{font-style:italic;font-weight:500;color:var(--accent);margin-left:.04em}
+header p{margin:.5rem 0 0;color:var(--muted)}
+header p strong{color:var(--ink);font-weight:600}
+.note{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:16px 0 22px;padding:10px 14px;border:1px dashed var(--gold);border-radius:8px;font-size:.9rem;color:var(--muted)}
+.note strong{color:var(--gold)}
+button{font:inherit;cursor:pointer;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;padding:4px 12px}
+button:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:960px){.grid{grid-template-columns:1fr}}
+.inputs{display:flex;flex-direction:column;gap:18px;min-width:0}
+.block{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 16px 12px;min-width:0}
+.bh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bh h2{font-family:var(--display);font-weight:500;font-size:1.1rem;margin:0;color:var(--accent)}
+.tot{font-family:var(--mono);font-size:.9rem;font-variant-numeric:tabular-nums}
+.tot small{font-family:var(--body);color:var(--muted);font-size:.8rem;margin-left:4px}
+.ed tfoot td{border-top:2px solid var(--line);padding:9px 6px 4px;vertical-align:top}
+.ft-l{font-weight:600}
+.ft-v{text-align:right;font-family:var(--mono);font-size:.92rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+.ft-v small{display:block;font-family:var(--body);color:var(--muted);font-size:.76rem;font-weight:400}
+.hint{color:var(--muted);font-size:.84rem;margin:4px 0 10px;max-width:72ch}
+.tw{overflow-x:auto}
+table.ed{width:100%;border-collapse:collapse;min-width:440px}
+.ed th{text-align:left;font-size:.72rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:0 6px 6px}
+.ed td{padding:3px 4px;border-top:1px solid var(--line)}
+.ed input,.ed select,.kv input{width:100%;border:1px solid transparent;background:transparent;color:var(--ink);border-radius:5px;padding:6px 6px;font:inherit}
+.ed input:hover,.ed select:hover{border-color:var(--line)}
+.ed input:focus,.ed select:focus,.kv input:focus{border-color:var(--accent);background:var(--sunk);outline:none}
+.ed input[type=number],.ed input.money,.kv input{font-family:var(--mono);font-size:.88rem;text-align:right;font-variant-numeric:tabular-nums}
+.ed .c-money{width:130px}.ed .c-pct,.ed .c-pct2,.ed .c-num{width:92px}.ed .c-inf{width:116px}.ed .c-del{width:34px}.ed th .who{color:var(--accent);letter-spacing:.04em}
+.ft-l small{display:block;font-weight:400;color:var(--muted);font-size:.78rem;font-family:var(--mono)}
+.cell{display:flex;align-items:center}.cell span{color:var(--muted);font-size:.8rem;padding-left:2px}
+.del{border:0;background:transparent;color:var(--muted);font-size:1.1rem;padding:2px 8px;line-height:1}
+.del:hover{color:var(--bad)}
+.add{margin-top:8px;border-style:dashed;color:var(--accent);font-size:.88rem}
+.kvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 18px}
+.kv{display:grid;grid-template-columns:minmax(0,1fr) 96px;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
+.kv label{font-size:.9rem}
+.kv input[type=checkbox]{width:20px;height:20px;margin-left:auto;accent-color:var(--accent)}
+.kv .cell input{border:1px solid var(--line);background:var(--sunk)}
+.summary{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:.88rem;color:var(--muted)}
+.summary b{color:var(--ink);font-family:var(--mono);font-weight:500}
+.results{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px);display:flex;flex-direction:column;gap:16px;min-width:0}
+@media (max-width:960px){.results{position:static}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px}
+.card.tmw{border-color:var(--gold)}
+.eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.72rem;color:var(--muted);font-weight:600}
+.big{font-family:var(--display);font-weight:700;font-size:clamp(1.8rem,4.6vw,2.6rem);line-height:1.05;font-variant-numeric:tabular-nums;margin-top:2px}
+.c-acc{color:var(--accent)}.c-gold{color:var(--gold)}.c-bad{color:var(--bad)}.c-good{color:var(--good)}
+.sub{color:var(--muted);font-size:.92rem}
+.lasts{margin-top:12px;padding:10px 12px;border-radius:8px;background:var(--accent-soft);font-size:.92rem}
+.lasts b{font-family:var(--mono);font-weight:500}
+.pill{display:inline-block;padding:2px 10px;border-radius:999px;font-weight:600;font-size:.82rem}
+.pill.good{background:var(--good-bg);color:var(--good)}.pill.bad{background:var(--bad-bg);color:var(--bad)}
+.rows{margin-top:14px;border-top:1px solid var(--line)}
+.rw{display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.rw:last-child{border-bottom:0}
+.rw span:first-child{color:var(--muted)}
+.rw span:last-child{font-family:var(--mono);font-variant-numeric:tabular-nums;text-align:right}
+svg{display:block;width:100%;height:auto}
+.axis{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.gridl{stroke:var(--line);stroke-width:1}
+.lp{fill:none;stroke:var(--accent);stroke-width:2.2}.lt{fill:none;stroke:var(--gold);stroke-width:2.2}
+.ap{fill:var(--accent-soft);opacity:.7}
+.retl{stroke:var(--muted);stroke-width:1;stroke-dasharray:2 3}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.82rem;color:var(--muted);margin-top:6px}
+.legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+details summary{cursor:pointer;color:var(--accent);font-weight:600;font-size:.9rem}
+.cuts th{text-align:left;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;padding:4px 0 6px}
+.cuts th:not(:first-child),.cuts td:not(:first-child){text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.cuts tr.cur td{color:var(--accent);font-weight:600}
+.cuts td{white-space:nowrap;padding-right:10px;font-size:.82rem}.cuts td:not(:first-child){font-size:.76rem}.cuts td:last-child,.cuts th:last-child{padding-right:0}
+table.bd{width:100%;border-collapse:collapse;margin-top:10px;font-size:.88rem}
+.bd td{padding:6px 0;border-bottom:1px solid var(--line)}.bd td:last-child{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.bd tr.total td{font-weight:600;border-bottom:0;color:var(--accent)}
+.fine{color:var(--muted);font-size:.8rem;margin:10px 0 0}
+.acts{display:flex;gap:8px;margin-left:auto}
+button.primary{background:var(--accent);color:var(--surface);border-color:var(--accent);font-weight:600}
+button.primary:hover{filter:brightness(1.08)}
+button[disabled]{opacity:.6;cursor:progress}
+#report{position:fixed;left:0;top:0;width:760px;z-index:998}
+#pdfwait{position:fixed;inset:0;z-index:999;background:var(--bg);color:var(--ink);display:grid;place-items:center;font-family:var(--display);font-size:1.2rem}
+.report{--bg:#fff;--surface:#fff;--sunk:#f6f7f5;--ink:#1d2a2b;--muted:#5d6b6a;--line:#d9dedb;--accent:#0f6b63;--accent-soft:#dcefeb;--gold:#b97c0c;--good:#2f7d3b;--bad:#b23a2e;
+  width:718px;box-sizing:border-box;background:#fff;color:#1d2a2b;font-family:var(--body);font-size:11.5px;line-height:1.45;padding:8px 6px}
+.report h1{font-family:var(--display);font-size:24px;margin:0;color:#0f6b63}
+.report h2{font-family:var(--display);font-size:15px;margin:18px 0 6px;color:#0f6b63;page-break-after:avoid}
+.report .meta{color:#5d6b6a;margin:2px 0 10px}
+.report table{width:100%;border-collapse:collapse;margin-bottom:4px;page-break-inside:avoid}
+.report th{text-align:left;font-size:9.5px;text-transform:uppercase;letter-spacing:.05em;color:#5d6b6a;border-bottom:1px solid #d9dedb;padding:4px 6px}
+.report td{border-bottom:1px solid #e6e9e7;padding:4px 6px}
+.report td.n,.report th.n{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.report tr.tt td{font-weight:600;border-top:1.5px solid #c9d0cd}
+.report .two{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.report .kpi{border:1px solid #d9dedb;border-radius:8px;padding:10px 12px;page-break-inside:avoid}
+.report .kpi .big{font-size:24px;margin:2px 0}
+.report .avoid{page-break-inside:avoid}
+.report .fine{font-size:9.5px}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <h1>FIRE<em>drill</em></h1>
+    <p><strong>FIRE</strong> stands for <strong>Financial Independence, Retire Early</strong>. The idea is to build a corpus large enough that its returns can pay your household's living costs for the rest of your life, so working becomes a choice rather than a necessity. The size of that corpus is your <strong>FIRE number</strong>. It depends on what you spend, how long the money has to last, inflation, and the returns you expect.</p>
+    <p>This page works it out from your own figures. Enter what your household spends each month and each year, your loan EMIs, your existing investments and monthly SIPs (yours and your spouse's), any income you expect after retiring, and big future goals. It then shows your FIRE number at your chosen retirement age, whether your savings are on track to reach it, how long your money would last if you stopped working tomorrow, and how much further it stretches if you spend less after retiring.</p>
+  </header>
+  <div class="note"><span><strong>Example figures loaded.</strong> Edit, add or remove rows to match your situation.<br><strong>Your data is stored only in this browser,</strong> for this tab. It is never uploaded or shared, and it is erased when you close the tab or browser.</span><span class="acts"><button id="pdf" type="button" class="primary">Download PDF</button><button id="reset" type="button">Reset to example</button></span></div>
+
+  <div class="grid">
+    <div class="inputs" id="inputs"></div>
+
+    <aside class="results" aria-live="polite">
+      <div class="card">
+        <div class="eyebrow" id="fLabel">FIRE number at retirement</div>
+        <div class="big c-acc" id="fire">–</div>
+        <div class="sub" id="fireToday"></div>
+        <div style="margin-top:10px" id="status"></div>
+        <div class="rows">
+          <div class="rw"><span id="projL">Projected corpus</span><span id="proj">–</span></div>
+          <div class="rw"><span>Extra monthly SIP to close the gap</span><span id="extra">–</span></div>
+          <div class="rw"><span id="minL">Bare minimum to last your plan</span><span id="minC">–</span></div>
+          <div class="rw"><span id="planL">Projected corpus lasts until</span><span id="planLasts">–</span></div>
+        </div>
+      </div>
+
+      <div class="card tmw">
+        <div class="eyebrow">If you retire tomorrow</div>
+        <div class="big c-gold" id="tYears">–</div>
+        <div class="sub" id="tSub"></div>
+        <div class="rows">
+          <div class="rw"><span>Investments today</span><span id="tCorpus">–</span></div>
+          <div class="rw"><span>First-year withdrawal</span><span id="tW">–</span></div>
+          <div class="rw"><span>Withdrawal rate</span><span id="tRate">–</span></div>
+          <div class="rw"><span>FIRE number if retiring today</span><span id="tNeed">–</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="eyebrow">Corpus over time</div>
+        <svg id="chart" viewBox="0 0 640 260" role="img" aria-label="Corpus by age for planned retirement and for retiring tomorrow"></svg>
+        <div class="legend"><span><i style="background:var(--accent)"></i><span id="lgP">Retire as planned</span></span><span><i style="background:var(--gold)"></i>Retire tomorrow</span></div>
+        <details style="margin-top:12px"><summary>How the FIRE number is built</summary><table class="bd" id="breakdown"></table></details>
+        <p class="fine">Assumes steady returns and inflation; real markets vary year to year, and taxes on withdrawals are not modelled. Not financial advice. Your inputs are stored only in your browser and are erased when you close the tab. A SEBI-registered investment advisor can stress-test your plan.</p>
+      </div>
+      <div class="card">
+        <div class="eyebrow">If you cut post-retirement spending</div>
+        <p class="sub" id="cutIntro" style="margin:6px 0 0"></p>
+        <div class="tw"><table class="bd cuts" id="cuts"></table></div>
+        <p class="fine">"Left at" is in future rupees; "In today's money" converts it back using general inflation. Cuts apply to your monthly and yearly living expenses from retirement onwards. EMIs, one-time goals and post-retirement income stay as entered.</p>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="report" aria-hidden="true"></div>
+<div id="pdfwait" hidden>Preparing your PDF…</div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+const KEY="fire-calc-v2";
+const EX={v:3,
+ profile:{age:40,retAge:50,life:90,sp:false,spAge:37,spRet:55},
+ asm:{infG:6,infH:10,infE:10,post:8,swr:3.5,step:8,reserve:1500000},
+ monthly:[
+  {n:"Groceries & household supplies",a:18000,pct:100,inf:"G"},
+  {n:"Society maintenance / rent",a:8000,pct:100,inf:"G"},
+  {n:"Electricity, water, gas",a:7000,pct:100,inf:"G"},
+  {n:"Phone, internet, OTT",a:2500,pct:100,inf:"G"},
+  {n:"Fuel & commute",a:12000,pct:60,inf:"G"},
+  {n:"Domestic help & driver",a:15000,pct:100,inf:"G"},
+  {n:"Dining out & entertainment",a:10000,pct:100,inf:"G"},
+  {n:"Children's school fees",a:20000,pct:0,inf:"E"},
+  {n:"Personal care & shopping",a:8000,pct:90,inf:"G"},
+  {n:"Medicines & doctor visits",a:4000,pct:150,inf:"H"},
+  {n:"Miscellaneous",a:6000,pct:100,inf:"G"}],
+ yearly:[
+  {n:"Health insurance premium",a:60000,pct:150,inf:"H"},
+  {n:"Term life insurance",a:25000,pct:0,inf:"G"},
+  {n:"Vehicle insurance & service",a:40000,pct:100,inf:"G"},
+  {n:"Vacations",a:150000,pct:120,inf:"G"},
+  {n:"Festivals & gifts",a:60000,pct:100,inf:"G"},
+  {n:"Home repairs & appliances",a:50000,pct:100,inf:"G"},
+  {n:"Property tax",a:10000,pct:100,inf:"G"},
+  {n:"Clothing",a:40000,pct:80,inf:"G"}],
+ loans:[{n:"Home loan",emi:45000,yrs:7},{n:"Car loan",emi:15000,yrs:3}],
+ assets:[
+  {n:"Equity mutual funds",a:4000000,r:12},{n:"Direct stocks",a:1000000,r:12},
+  {n:"EPF",a:2500000,r:8.25},{n:"PPF",a:1200000,r:7.1},{n:"NPS",a:800000,r:10},
+  {n:"FDs & debt funds",a:1000000,r:7},{n:"Gold / SGBs",a:500000,r:8},{n:"Savings & cash",a:300000,r:3}],
+ sips:[{n:"Equity mutual fund SIPs",a:60000,r:12},{n:"EPF (employee + employer)",a:25000,r:8.25},{n:"PPF",a:12500,r:7.1},{n:"NPS",a:10000,r:10}],
+ income:[{n:"Rent from second flat",a:20000,from:40},{n:"EPS pension",a:3000,from:58}],
+ goals:[{n:"Child's college",a:2500000,age:45,inf:"E"},{n:"Child's wedding",a:2000000,age:52,inf:"G"},{n:"Car replacement",a:1200000,age:55,inf:"G"}]
+};
+const SEC=[
+ {k:"monthly",t:"Monthly expenses",h:"What the household spends each month today. \"After retiring\" is the share that continues once you stop work: 0% if it ends, above 100% if it grows.",
+  cols:[["n","text","Expense"],["a","money","Per month"],["pct","pct","After retiring"],["inf","inf","Inflation"]],add:{n:"",a:0,pct:100,inf:"G"},tot:"a",tl:"/ month"},
+ {k:"yearly",t:"Yearly expenses",h:"Costs paid once or a few times a year.",
+  cols:[["n","text","Expense"],["a","money","Per year"],["pct","pct","After retiring"],["inf","inf","Inflation"]],add:{n:"",a:0,pct:100,inf:"G"},tot:"a",tl:"/ year"},
+ {k:"loans",t:"Loan EMIs",h:"EMIs stop when the loan ends and don't rise with inflation. If you retire before a loan ends, the corpus pays the rest.",
+  cols:[["n","text","Loan"],["emi","money","EMI per month"],["yrs","num","Years left"]],add:{n:"",emi:0,yrs:1},tot:"emi",tl:"/ month"},
+ {k:"assets",t:"Existing investments",h:"Current value of everything you could draw on. Leave out the home you live in.",
+  cols:[["n","text","Investment"],["a","money","Current value"],["b","money2","Spouse"],["r","pct2","Expected return"]],add:{n:"",a:0,b:0,r:8},tot:"a",tl:"total"},
+ {k:"sips",t:"Monthly SIPs & contributions",h:"Ongoing monthly investments. Each person's SIPs continue until that person retires, and rise yearly by the step-up set in Assumptions.",
+  cols:[["n","text","SIP"],["a","money","Per month"],["b","money2","Spouse"],["r","pct2","Expected return"]],add:{n:"",a:0,b:0,r:12},tot:"a",tl:"/ month"},
+ {k:"income",t:"Income after retiring",h:"Monthly amounts in today's money, assumed to rise with general inflation from the age they start.",
+  cols:[["n","text","Source"],["a","money","Per month"],["from","num","From your age"]],add:{n:"",a:0,from:60},tot:"a",tl:"/ month"},
+ {k:"goals",t:"One-time goals",h:"Big future costs in today's money, paid from your investments in the year they fall due.",
+  cols:[["n","text","Goal"],["a","money","Cost today"],["age","num","At your age"],["inf","inf","Inflation"]],add:{n:"",a:0,age:55,inf:"G"},tot:"a",tl:"today's value"}
+];
+const PROF=[["age","Your age","yrs"],["retAge","Your retirement age","yrs"]];
+const SPF=[["spAge","Spouse's age","yrs"],["spRet","Spouse's retirement age","yrs"]];
+const LIFE=[["life","Plan until age","yrs"]];
+const ASM=[["infG","General inflation","%"],["infH","Healthcare inflation","%"],["infE","Education inflation","%"],["post","Return after retiring","%"],["swr","Safe withdrawal rate","%"],["step","Yearly SIP step-up","%"],["reserve","Medical / emergency reserve (today's value)",""]];
+const INF={G:"General",H:"Healthcare",E:"Education"};
+const clone=o=>JSON.parse(JSON.stringify(o));
+let S; try{S=JSON.parse(sessionStorage.getItem(KEY))}catch(e){} if(!S||S.v!==3) S=clone(EX);
+if(S.profile.sp===undefined){S.profile.sp=false;S.profile.spAge=S.profile.age;S.profile.spRet=S.profile.retAge;}
+["assets","sips"].forEach(k=>S[k].forEach(r=>{if(r.o==="S"){r.b=(+r.b||0)+r.a;r.a=0;} delete r.o; if(r.b===undefined) r.b=0;}));
+const save=()=>{try{sessionStorage.setItem(KEY,JSON.stringify(S))}catch(e){}};
+const esc=s=>String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");
+const inr=x=>{ if(!isFinite(x)) return "–"; const a=Math.abs(x), s=x<0?"−":"";
+  return s+Math.round(a).toLocaleString("en-IN"); };
+const fmt=x=>Math.round(+x||0).toLocaleString("en-IN");
+const num=v=>parseFloat(String(v).replace(/[^0-9.\-]/g,""))||0;
+
+function kvBlock(title,hint,list,grp){
+  return `<section class="block"><div class="bh"><h2>${title}</h2></div>${hint?`<p class="hint">${hint}</p>`:""}<div class="kvgrid">`+kvRows(list,grp)+`</div></section>`;
+}
+function kvRows(list,grp){
+  return list.map(([k,l,u])=>`<div class="kv"><label for="${grp}-${k}">${l}</label><div class="cell">${k==="reserve"?`<input id="${grp}-${k}" type="text" inputmode="numeric" class="money" data-g="${grp}" data-k="${k}" value="${fmt(S[grp][k])}">`:`<input id="${grp}-${k}" type="number" step="any" data-g="${grp}" data-k="${k}" value="${S[grp][k]}">`}${u?`<span>${u}</span>`:""}</div></div>`).join("");
+}
+function household(){
+  const sp=S.profile.sp;
+  return `<section class="block"><div class="bh"><h2>Household</h2></div><p class="hint">${sp?"Expenses below are for the whole household. The FIRE date is when the first of you stops working; whoever is still working keeps paying their own SIPs until they retire. The plan runs until the younger of you reaches the plan-until age. Enter each investment and SIP in your column and your spouse's column. Ages in income and goal rows are your age.":"Tick the box to add a spouse with a different age and retirement age."}</p><div class="kvgrid">`+
+   kvRows(PROF,"profile")+`<div class="kv"><label for="profile-sp">Include spouse</label><div class="cell"><input type="checkbox" id="profile-sp" data-chk="sp"${sp?" checked":""}></div></div>`+
+   (sp?kvRows(SPF,"profile"):"")+kvRows(LIFE,"profile")+`</div></section>`;
+}
+function secBlock(sec){
+  const sp=S.profile.sp, two=sp&&sec.cols.some(c=>c[1]==="money2");
+  const cols=sec.cols.filter(([,t])=>t!=="money2"||sp);
+  const rows=S[sec.k].map((r,i)=>"<tr>"+cols.map(([c,t])=>{
+    const id=`${sec.k}-${i}-${c}`, d=`data-s="${sec.k}" data-i="${i}" data-k="${c}" id="${id}"`;
+    if(t==="text") return `<td><input type="text" ${d} value="${esc(r[c])}" placeholder="Name" aria-label="Name"></td>`;
+    if(t==="inf") return `<td class="c-inf"><select ${d} aria-label="Inflation type">${Object.entries(INF).map(([v,l])=>`<option value="${v}"${r[c]===v?" selected":""}>${l}</option>`).join("")}</select></td>`;
+    if(t==="money"||t==="money2") return `<td class="c-money"><input type="text" inputmode="numeric" class="money" ${d} value="${fmt(r[c])}" aria-label="${t==="money2"?"Spouse amount":two?"Your amount":"Amount"}"></td>`;
+    const suf=t==="pct"||t==="pct2"?"%":"";
+    return `<td class="c-${t}"><div class="cell"><input type="number" step="any" ${d} value="${r[c]}" aria-label="${c}">${suf?`<span>${suf}</span>`:""}</div></td>`;
+  }).join("")+`<td class="c-del"><button class="del" type="button" data-del="${sec.k}" data-i="${i}" aria-label="Remove row">×</button></td></tr>`).join("");
+  return `<section class="block"><div class="bh"><h2>${sec.t}</h2></div><p class="hint">${sec.h}</p>
+   <div class="tw"><table class="ed"><thead><tr>${cols.map(([c,t,l])=>`<th class="c-${t==="money2"?"money":t}">${two&&t==="money"?`${l}<br><span class="who">You</span>`:t==="money2"?`${sec.cols.find(x=>x[1]==="money")[2]}<br><span class="who">Spouse</span>`:l}</th>`).join("")}<th class="c-del"></th></tr></thead><tbody>${rows}</tbody><tfoot><tr>${cols.map(([,t],j)=>j===0?`<td class="ft-l" id="ftl-${sec.k}">Total</td>`:t==="money"?`<td class="ft-v" id="tot-${sec.k}"></td>`:t==="money2"?`<td class="ft-v" id="tot2-${sec.k}"></td>`:`<td></td>`).join("")}<td></td></tr></tfoot></table></div>
+   <button class="add" type="button" data-add="${sec.k}">+ Add row</button></section>`;
+}
+function render(){
+  const box=document.getElementById("inputs");
+  box.innerHTML=household()+
+   `<section class="block"><div class="summary" id="summary"></div></section>`+
+   SEC.map(secBlock).join("")+
+   kvBlock("Assumptions","Returns on existing investments and SIPs are set per row above. After retirement, the whole corpus earns the single return below.",ASM,"asm");
+  calc();
+}
+const box=document.getElementById("inputs");
+box.addEventListener("input",e=>{const t=e.target,d=t.dataset;
+  if(d.chk){S.profile.sp=t.checked; save(); render(); document.getElementById("profile-sp")?.focus(); return;}
+  const money=t.classList.contains("money");
+  if(d.g){S[d.g][d.k]=money?num(t.value):(parseFloat(t.value)||0);}
+  else if(d.s){S[d.s][+d.i][d.k]=money?num(t.value):(t.type==="text"||t.tagName==="SELECT")?t.value:(parseFloat(t.value)||0);}
+  else return; save(); calc();});
+box.addEventListener("click",e=>{const b=e.target.closest("button"); if(!b) return;
+  if(b.dataset.add){S[b.dataset.add].push(clone(SEC.find(s=>s.k===b.dataset.add).add)); save(); render();
+    const rows=document.querySelectorAll(`[data-s="${b.dataset.add}"][data-k="n"]`); rows[rows.length-1]?.focus();}
+  if(b.dataset.del){S[b.dataset.del].splice(+b.dataset.i,1); save(); render();}});
+box.addEventListener("focusout",e=>{const t=e.target; if(t.classList&&t.classList.contains("money")) t.value=fmt(num(t.value));});
+document.getElementById("reset").addEventListener("click",()=>{S=clone(EX); save(); render();});
+
+/* ---------- model ---------- */
+function model(){
+  const P=S.profile, A=S.asm, pc=x=>x/100;
+  const g=pc(A.infG), post=pc(A.post), swr=pc(A.swr), step=pc(A.step);
+  const rate=k=>k==="H"?pc(A.infH):k==="E"?pc(A.infE):g;
+  const age0=Math.round(P.age), sp=!!P.sp, d=sp?Math.round(P.spAge)-age0:0;
+  const yrsYou=Math.max(0,Math.round(P.retAge-P.age)), yrsSp=sp?Math.max(0,Math.round(P.spRet-P.spAge)):yrsYou;
+  const yrs=Math.min(yrsYou,yrsSp);
+  const horizon=Math.round(sp?Math.max(P.life-P.age,P.life-P.spAge):P.life-P.age);
+  const ret=age0+yrs, life=age0+Math.max(yrs+1,horizon);
+  const spendAt=t=>S.monthly.reduce((s,r)=>s+r.a*12*pc(r.pct)*Math.pow(1+rate(r.inf),t),0)+S.yearly.reduce((s,r)=>s+r.a*pc(r.pct)*Math.pow(1+rate(r.inf),t),0);
+  const emiAt=t=>S.loans.reduce((s,r)=>s+(t<r.yrs?r.emi*12:0),0);
+  const incAt=(t,a)=>S.income.reduce((s,r)=>s+(a>=r.from?r.a*12*Math.pow(1+g,t):0),0);
+  const goalAt=a=>S.goals.reduce((s,r)=>s+(Math.round(r.age)===a?r.a*Math.pow(1+rate(r.inf),a-age0):0),0);
+  const amt=r=>r.a+(sp?(+r.b||0):0);
+  const sipR=(()=>{const t=S.sips.reduce((s,r)=>s+amt(r),0);return t?S.sips.reduce((s,r)=>s+amt(r)*pc(r.r),0)/t:.12;})();
+
+  function accumulate(years,extra=0){
+    const b=S.assets.map(r=>({v:amt(r),r:pc(r.r),m:0})).concat(S.sips.map(r=>({v:0,r:pc(r.r),m:amt(r)})),[{v:0,r:sipR,m:extra}]);
+    const tot=()=>b.reduce((s,x)=>s+x.v,0), path=[[age0,tot()]];
+    for(let y=0;y<years;y++){
+      const gl=goalAt(age0+y); if(gl>0){const T=tot(), f=T>0?Math.max(0,(T-gl)/T):0; b.forEach(x=>x.v*=f);}
+      b.forEach(x=>{x.v=x.v*(1+x.r)+x.m*12*Math.pow(1+step,y)*Math.pow(1+x.r,.5);});
+      path.push([age0+y+1,tot()]);
+    }
+    return {total:tot(),path};
+  }
+  // SIPs still being paid after the household's FIRE date (the later retiree keeps investing)
+  const contribAt=(t,youT)=>S.sips.reduce((s,r)=>s+((t<youT)*r.a+(sp&&t<yrsSp)*(+r.b||0))*12*Math.pow(1+step,t),0);
+  function drawdown(c,t0,a0,youT=yrsYou){
+    const series=[[a0,c]]; let dep=null;
+    for(let t=t0,a=a0;a<life;t++,a++){
+      const w=spendAt(t)+emiAt(t)+goalAt(a)-incAt(t,a)-contribAt(t,youT);
+      if(dep===null&&c-w<0){dep=a+(w>0?Math.max(0,c)/w:0);}
+      c=dep!==null?0:(c-w)*(1+post);
+      series.push([a+1,Math.max(0,c)]);
+    }
+    return {series,dep};
+  }
+  function fire(t,youT=yrsYou){
+    const a=age0+t, spend=spendAt(t), inc=incAt(t,a), net=Math.max(0,spend-inc), base=swr>0?net/swr:Infinity;
+    let emi=0; for(let k=t;k<Math.max(0,...S.loans.map(r=>r.yrs));k++) emi+=emiAt(k)/Math.pow(1+post,k-t);
+    const goals=S.goals.reduce((s,r)=>{const ga=Math.round(r.age); return ga>=a? s+r.a*Math.pow(1+rate(r.inf),ga-age0)/Math.pow(1+post,ga-a):s},0);
+    const reserve=A.reserve*Math.pow(1+pc(A.infH),t);
+    const rule=base+emi+goals+reserve;
+    let lo=0,hi=1e11; for(let i=0;i<70;i++){const m=(lo+hi)/2; drawdown(m,t,a,youT).dep===null?hi=m:lo=m;}
+    const cash=hi, total=Math.max(rule,cash+reserve);
+    return {spend,inc,net,base,emi,goals,reserve,rule,cash,total,byCash:cash+reserve>rule,defl:Math.pow(1+g,t)};
+  }
+  const F=fire(yrs), acc=accumulate(yrs), plan=drawdown(acc.total,yrs,ret);
+  let extra=0; if(acc.total<F.total&&yrs>0){let lo=0,hi=1e8;for(let i=0;i<60;i++){const m=(lo+hi)/2;accumulate(yrs,m).total>=F.total?hi=m:lo=m;}extra=hi;} else if(acc.total<F.total) extra=Infinity;
+  const minC=F.cash;
+  const c0=S.assets.reduce((s,r)=>s+amt(r),0), tm=drawdown(c0,0,age0,0), w0=spendAt(0)+emiAt(0)+goalAt(age0)-incAt(0,age0)-contribAt(0,0), F0=fire(0,0);
+  const todaySpend=S.monthly.reduce((s,r)=>s+r.a*12,0)+S.yearly.reduce((s,r)=>s+r.a,0);
+  function lasts(c,f){ // FIRE corpus with living costs scaled by f, run to age 120
+    let atLife=null;
+    for(let t=yrs,a=ret;a<120;t++,a++){
+      const w=f*spendAt(t)+emiAt(t)+goalAt(a)-incAt(t,a)-contribAt(t,yrsYou);
+      if(c-w<0) return {dep:a+(w>0?Math.max(0,c)/w:0),atLife:a<life?0:atLife};
+      c=(c-w)*(1+post); if(a+1===life) atLife=c;
+    }
+    return {dep:null,atLife};
+  }
+  const cuts=[0,2,4,6,8,10].map(p=>({p,spend:(1-p/100)*spendAt(yrs),...lasts(F.total,1-p/100)}));
+  return {cuts,P:{age0,ret,life,yrs,sp,d},F,acc,plan,extra,minC,c0,tm,w0,F0,todaySpend,emiNow:emiAt(0)*1,sipNow:S.sips.reduce((s,r)=>s+amt(r),0),swr};
+}
+
+function calc(){
+  const M=model(), $=id=>document.getElementById(id), {age0,ret,life,yrs,sp,d}=M.P;
+  const CY=new Date().getFullYear(), yr=a=>CY+(a-age0);
+  const lab=a=>sp?`${yr(a)} (you ${a}, spouse ${a+d})`:`age ${a}`;
+  const at=a=>sp?`in ${lab(a)}`:`at ${lab(a)}`;
+  const sl=a=>sp?`${yr(a)}`:`age ${a}`;
+  const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+  SEC.forEach(s=>{const el=$("tot-"+s.k); if(el){const t=S[s.k].reduce((a,r)=>a+(+r[s.tot]||0),0); const yr=x=>`<small>${s.tl}${s.tl==="/ month"?` · ${inr(x*12)} / year`:""}</small>`;
+    el.innerHTML=`${inr(t)}${yr(t)}`;
+    const e2=$("tot2-"+s.k), fl=$("ftl-"+s.k);
+    if(e2){const t2=S[s.k].reduce((a,r)=>a+(+r.b||0),0); e2.innerHTML=`${inr(t2)}${yr(t2)}`; fl.innerHTML=`Total<small>Household ${inr(t+t2)}${s.tl==="/ month"?" / month":""}</small>`;}}});
+  const sm=$("summary"); if(sm) sm.innerHTML=`<span>Spending today <b>${inr(M.todaySpend)}</b> / year</span><span>EMIs <b>${inr(M.emiNow)}</b> / year</span><span>Investments <b>${inr(M.c0)}</b></span><span>SIPs <b>${inr(M.sipNow)}</b> / month</span>`;
+
+  $("fLabel").textContent=`FIRE number ${at(ret)}`;
+  $("fire").textContent=inr(M.F.total);
+  $("fireToday").textContent=`≈ ${inr(M.F.total/M.F.defl)} in today's money · ${yrs} year${yrs===1?"":"s"} from now`;
+  const gap=M.acc.total-M.F.total;
+  $("status").innerHTML=gap>=0?`<span class="pill good">On track · surplus ${inr(gap)}</span>`:`<span class="pill bad">Shortfall of ${inr(-gap)}</span>`;
+  $("projL").textContent=`Projected corpus ${at(ret)}`; $("proj").textContent=inr(M.acc.total);
+  $("extra").textContent=M.extra===0?"None needed":M.extra===Infinity?"–":inr(M.extra)+" / month";
+  $("minL").textContent=`Bare minimum to last until ${lab(life)}`; $("minC").textContent=inr(M.minC);
+  $("planL").textContent=`Projected corpus (${inr(M.acc.total)}) lasts until`;
+  $("planLasts").textContent=M.plan.dep===null?`Beyond ${sl(life)}`:cap(sl(Math.floor(M.plan.dep)));
+
+  const tYears=M.tm.dep===null?null:M.tm.dep-age0;
+  const ty=$("tYears");
+  if(tYears===null){ty.textContent=`${life-age0}+ years`;ty.className="big c-good";$("tSub").textContent=`Your money outlasts your plan horizon (${lab(life)})`;}
+  else{const y=Math.floor(tYears),m=Math.floor((tYears-y)*12);ty.textContent=`${y} yr${y===1?"":"s"}${m?` ${m} mo`:""}`;ty.className="big "+(tYears<15?"c-bad":"c-gold");$("tSub").textContent=`Money runs out around ${lab(Math.floor(M.tm.dep))}`;}
+  $("tCorpus").textContent=inr(M.c0); $("tW").textContent=inr(M.w0);
+  $("tRate").textContent=M.c0>0?(M.w0/M.c0*100).toFixed(1)+"%":"–";
+  $("tNeed").textContent=inr(M.F0.total);
+
+  $("lgP").textContent=sp?`Retire in ${yr(ret)}`:`Retire at ${ret}`;
+  const F=M.F, pc=S.asm.swr;
+  $("breakdown").innerHTML=`
+   <tr><td>Yearly spending at ${sl(ret)} (after-retiring shares, inflated)</td><td>${inr(F.spend)}</td></tr>
+   <tr><td>Less income already flowing at ${sl(ret)}</td><td>${inr(-F.inc)}</td></tr>
+   <tr><td>Net yearly withdrawal</td><td>${inr(F.net)}</td></tr>
+   <tr><td>Corpus for living costs (÷ ${pc}% withdrawal rate)</td><td>${inr(F.base)}</td></tr>
+   <tr><td>Plus EMIs still due after ${sl(ret)}</td><td>${inr(F.emi)}</td></tr>
+   <tr><td>Plus goals due at or after ${sl(ret)}</td><td>${inr(F.goals)}</td></tr>
+   <tr><td>Plus medical / emergency reserve</td><td>${inr(F.reserve)}</td></tr>
+   <tr><td><b>Rule-of-thumb total</b></td><td>${inr(F.rule)}</td></tr>
+   <tr><td>Cash-flow check: amount that lasts until ${sl(life)}, year by year</td><td>${inr(F.cash)}</td></tr>
+   <tr><td>Plus medical / emergency reserve, kept untouched</td><td>${inr(F.reserve)}</td></tr>
+   <tr><td><b>Cash-flow total</b></td><td>${inr(F.cash+F.reserve)}</td></tr>
+   <tr class="total"><td>FIRE number (higher of the two: ${F.byCash?"cash-flow":"rule of thumb"})</td><td>${inr(F.total)}</td></tr>`;
+  $("cutIntro").textContent=`How long your FIRE number of ${inr(M.F.total)} lasts from ${lab(ret)} if you spend less each year.`;
+  $("cuts").innerHTML=`<thead><tr><th>Spending cut</th><th>Spend in year 1</th><th>Lasts until</th><th>Left at ${sl(life)}</th><th>In today's money</th></tr></thead><tbody>`+
+    M.cuts.map(c=>`<tr class="${c.p===0?"cur":""}"><td>${c.p===0?"None (current plan)":c.p+"% less"}</td><td>${inr(c.spend)}</td><td>${c.dep===null?"Beyond 120":`${cap(sl(Math.floor(c.dep)))} · ${Math.floor(c.dep-ret)} yrs`}</td><td>${c.atLife===null?"–":inr(c.atLife)}</td><td>${c.atLife===null?"–":inr(c.atLife/Math.pow(1+S.asm.infG/100,life-age0))}</td></tr>`).join("")+`</tbody>`;
+  draw(M.acc.path.concat(M.plan.series.slice(1)),M.tm.series,age0,life,ret,M.F.total,sp?yr:(a=>a));
+}
+
+function draw(pS,tS,x0,x1,ret,tgt,xl){
+  const W=640,H=260,L=58,R=14,T=16,B=28, svg=document.getElementById("chart");
+  const ymax=Math.max(tgt,...pS.map(d=>d[1]),...tS.map(d=>d[1]))*1.08||1;
+  const X=a=>L+(a-x0)/((x1-x0)||1)*(W-L-R), Y=v=>T+(1-Math.min(v,ymax)/ymax)*(H-T-B);
+  const raw=ymax/4, e=Math.pow(10,Math.floor(Math.log10(raw||1))), n=raw/e, st=(n<=1?1:n<=2?2:n<=5?5:10)*e;
+  let g="";
+  for(let v=0;v<=ymax;v+=st) g+=`<line class="gridl" x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}"/><text class="axis" x="${L-6}" y="${Y(v)+3}" text-anchor="end">${v>=1e7?(v/1e7).toFixed(st<1e7?1:0)+" Cr":(v/1e5).toFixed(0)+" L"}</text>`;
+  const xs=(x1-x0)>40?10:5; for(let a=Math.ceil(x0/xs)*xs;a<=x1;a+=xs) g+=`<text class="axis" x="${X(a)}" y="${H-8}" text-anchor="middle">${xl(a)}</text>`;
+  const pts=s=>s.map(d=>`${X(d[0]).toFixed(1)},${Y(d[1]).toFixed(1)}`).join(" ");
+  const area=`M${X(pS[0][0])},${Y(0)} L${pts(pS).split(" ").join(" L")} L${X(pS[pS.length-1][0])},${Y(0)} Z`;
+  const rx=X(ret);
+  svg.innerHTML=g+`<path class="ap" d="${area}"/>
+   <line class="retl" x1="${rx}" x2="${rx}" y1="${T}" y2="${H-B}"/>
+   <text class="axis" x="${Math.min(rx+4,W-R-50)}" y="${T+8}">retire ${xl(ret)}</text>
+   <polyline class="lt" points="${pts(tS)}"/><polyline class="lp" points="${pts(pS)}"/>
+   <circle cx="${rx}" cy="${Y(tgt)}" r="4.5" fill="var(--surface)" stroke="var(--accent)" stroke-width="2"/>
+   <text class="axis" x="${rx-7}" y="${Y(tgt)-8}" text-anchor="end" style="fill:var(--accent)">FIRE no.</text>`;
+}
+/* ---------- PDF report ---------- */
+function buildReport(){
+  const $=id=>document.getElementById(id), tx=id=>($(id)?.textContent||"").trim();
+  const P=S.profile, sp=P.sp;
+  const cell=(t,v)=>t==="money"||t==="money2"?`<td class="n">${fmt(v)}</td>`:(t==="pct"||t==="pct2")?`<td class="n">${v}%</td>`:t==="num"?`<td class="n">${v}</td>`:t==="inf"?`<td>${INF[v]||v}</td>`:`<td>${esc(v)}</td>`;
+  const secTable=sec=>{
+    const cols=sec.cols.filter(([,t])=>t!=="money2"||sp), two=sp&&sec.cols.some(c=>c[1]==="money2");
+    const head=cols.map(([c,t,l])=>`<th class="${/money|pct|num/.test(t)?"n":""}">${t==="money2"?"Spouse":two&&t==="money"?"You":l}</th>`).join("");
+    const body=S[sec.k].map(r=>"<tr>"+cols.map(([c,t])=>cell(t,r[c]??0)).join("")+"</tr>").join("");
+    const sum=k=>S[sec.k].reduce((a,r)=>a+(+r[k]||0),0);
+    const foot="<tr class=\"tt\">"+cols.map(([c,t],j)=>j===0?`<td>Total${two?` (household ${fmt(sum("a")+sum("b"))})`:""}</td>`:(t==="money"||t==="money2")?`<td class="n">${fmt(sum(c))}</td>`:"<td></td>").join("")+"</tr>";
+    return `<div class="avoid"><h2>${sec.t}</h2><table><thead><tr>${head}</tr></thead><tbody>${body}${S[sec.k].length?foot:""}</tbody></table></div>`;
+  };
+  const kv=list=>list.map(([l,v])=>`<tr><td>${l}</td><td class="n">${v}</td></tr>`).join("");
+  const chart=$("chart").cloneNode(true); chart.setAttribute("width","720"); chart.setAttribute("height","292");
+  return `<div class="report">
+   <h1>FIRE<em>drill</em></h1>
+   <div class="meta">Generated ${new Date().toLocaleDateString("en-IN",{day:"numeric",month:"long",year:"numeric"})} · amounts in rupees</div>
+   <h2>Household</h2>
+   <table><tbody>${kv([["Your age",P.age],["Your retirement age",P.retAge]].concat(sp?[["Spouse's age",P.spAge],["Spouse's retirement age",P.spRet]]:[]).concat([["Plan until age",P.life]]))}</tbody></table>
+   <h2>Results</h2>
+   <div class="two">
+    <div class="kpi"><div class="eyebrow">${tx("fLabel")}</div><div class="big c-acc">${tx("fire")}</div><div class="sub">${tx("fireToday")}</div><div style="margin-top:6px">${tx("status")}</div>
+      <table style="margin-top:8px"><tbody>${kv([[tx("projL"),tx("proj")],["Extra monthly SIP to close the gap",tx("extra")],[tx("minL"),tx("minC")],[tx("planL"),tx("planLasts")]])}</tbody></table></div>
+    <div class="kpi"><div class="eyebrow">If you retire tomorrow</div><div class="big c-gold">${tx("tYears")}</div><div class="sub">${tx("tSub")}</div>
+      <table style="margin-top:8px"><tbody>${kv([["Investments today",tx("tCorpus")],["First-year withdrawal",tx("tW")],["Withdrawal rate",tx("tRate")],["FIRE number if retiring today",tx("tNeed")]])}</tbody></table></div>
+   </div>
+   <div class="avoid"><h2>Corpus over time</h2>${chart.outerHTML}<div class="legend">${$("chart").parentElement.querySelector(".legend").innerHTML}</div></div>
+   <div class="avoid"><h2>How the FIRE number is built</h2><table class="bd">${$("breakdown").innerHTML}</table></div>
+   <div class="avoid"><h2>If you cut post-retirement spending</h2><p class="sub">${tx("cutIntro")}</p><table class="bd cuts">${$("cuts").innerHTML}</table></div>
+   ${SEC.map(secTable).join("")}
+   <div class="avoid"><h2>Assumptions</h2><table><tbody>${kv(ASM.map(([k,l,u])=>[l,k==="reserve"?fmt(S.asm[k]):S.asm[k]+(u?" "+u:"")]))}</tbody></table></div>
+   <p class="fine">Estimates only, based on steady returns and inflation; taxes on withdrawals are not modelled. Not financial advice.</p>
+  </div>`;
+}
+document.getElementById("pdf").addEventListener("click",async e=>{
+  const btn=e.currentTarget, box=document.getElementById("report");
+  if(typeof html2pdf==="undefined"){ window.print(); return; }
+  const wait=document.getElementById("pdfwait"); wait.hidden=false;
+  btn.disabled=true; btn.textContent="Preparing PDF…";
+  box.innerHTML=buildReport();
+  box.querySelectorAll("svg *").forEach(el=>{const cs=getComputedStyle(el); // inline styles so the chart survives rasterising
+    ["fill","stroke","stroke-width","stroke-dasharray","opacity","font-family","font-size","font-weight"].forEach(k=>{const v=cs.getPropertyValue(k); if(v) el.setAttribute(k,v);});});
+  const d=new Date(), name=`FIRE-plan-${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}.pdf`;
+  try{
+    await html2pdf().set({margin:[12,10,12,10],filename:name,image:{type:"jpeg",quality:0.95},
+      html2canvas:{scale:2,backgroundColor:"#ffffff",scrollX:0,scrollY:0},jsPDF:{unit:"mm",format:"a4",orientation:"portrait"},
+      pagebreak:{mode:["css","legacy"],avoid:[".avoid",".kpi","tr"]}}).from(box.firstElementChild).save();
+  }catch(err){ window.print(); }
+  finally{ wait.hidden=true; box.innerHTML=""; btn.disabled=false; btn.textContent="Download PDF"; }
+});
+
+render();
+</script>
+
+</body>
+</html>
