@@ -65,11 +65,14 @@ table.ed{width:100%;border-collapse:collapse;min-width:440px}
 .del{border:0;background:transparent;color:var(--muted);font-size:1.1rem;padding:2px 8px;line-height:1}
 .del:hover{color:var(--bad)}
 .add{margin-top:8px;border-style:dashed;color:var(--accent);font-size:.88rem}
-.kvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:4px 18px}
+.kvgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 44px}
 .kv{display:grid;grid-template-columns:minmax(0,1fr) 96px;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line)}
 .kv label{font-size:.9rem}
-.kv input[type=checkbox]{width:20px;height:20px;margin-left:auto;accent-color:var(--accent)}
 .kv .cell input{border:1px solid var(--line);background:var(--sunk)}
+.spt{display:flex;align-items:center;gap:10px;margin-top:14px;padding:10px 12px;border:1px dashed var(--line);border-radius:8px;font-size:.9rem;cursor:pointer}
+.spt:has(input:checked){border-style:solid;border-color:var(--accent);background:var(--accent-soft)}
+.spt input{width:18px;height:18px;margin:0;accent-color:var(--accent)}
+.spg{margin-top:10px}
 .summary{display:flex;flex-wrap:wrap;gap:6px 22px;font-size:.88rem;color:var(--muted)}
 .summary b{color:var(--ink);font-family:var(--mono);font-weight:500}
 .results{position:sticky;top:calc(env(safe-area-inset-top, 0px) + 12px);display:flex;flex-direction:column;gap:16px;min-width:0}
@@ -264,8 +267,9 @@ function kvRows(list,grp){
 function household(){
   const sp=S.profile.sp;
   return `<section class="block"><div class="bh"><h2>Household</h2></div><p class="hint">${sp?"Expenses below are for the whole household. The FIRE date is when the first of you stops working; whoever is still working keeps paying their own SIPs until they retire. The plan runs until the younger of you reaches the plan-until age. Enter each investment and SIP in your column and your spouse's column. Ages in income and goal rows are your age.":"Tick the box to add a spouse with a different age and retirement age."}</p><div class="kvgrid">`+
-   kvRows(PROF,"profile")+`<div class="kv"><label for="profile-sp">Include spouse</label><div class="cell"><input type="checkbox" id="profile-sp" data-chk="sp"${sp?" checked":""}></div></div>`+
-   (sp?kvRows(SPF,"profile"):"")+kvRows(LIFE,"profile")+`</div></section>`;
+   kvRows(PROF,"profile")+kvRows(LIFE,"profile")+`</div>
+   <label class="spt" for="profile-sp"><input type="checkbox" id="profile-sp" data-chk="sp"${sp?" checked":""}>Include spouse</label>`+
+   (sp?`<div class="kvgrid spg">`+kvRows(SPF,"profile")+`</div>`:"")+`</section>`;
 }
 function secBlock(sec){
   const sp=S.profile.sp, two=sp&&sec.cols.some(c=>c[1]==="money2");
