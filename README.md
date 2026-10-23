@@ -39,13 +39,17 @@ The "How the FIRE number is built" panel in the app shows each line.
 
 ## Running it
 
-Open `index.html` in a browser. To serve it locally:
+Use it online at https://ukkit.github.io/FIREdrill/.
+
+To run it yourself, download or clone the repo and serve the folder:
 
 ```sh
 python3 -m http.server
 ```
 
-It is a single static file, so it also works on GitHub Pages or any static host. The PDF export loads [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) from cdnjs, so that one feature needs an internet connection.
+Then open http://localhost:8000 in a browser. Opening `index.html` directly also works.
+
+It is a single static file, so any static host will serve it. The PDF export loads [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) from cdnjs, so that one feature needs an internet connection.
 
 ## Privacy
 
