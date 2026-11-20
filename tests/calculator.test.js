@@ -17,6 +17,7 @@ assert.equal(vm.runInContext('S.profile.life', context), 95);
 assert.equal(vm.runInContext('S.profile.spAge', context), 42);
 assert.equal(vm.runInContext('S.profile.spRet', context), 60);
 assert.equal(vm.runInContext('S.income[1].from', context), 63);
+assert.equal(vm.runInContext('S.income[1].to', context), 120);
 assert.equal(vm.runInContext('S.goals[0].age', context), 50);
 assert.equal(vm.runInContext('changeAge("age",80)', context), '');
 assert.equal(vm.runInContext('S.profile.life', context), 100, 'age shift caps the plan horizon');
@@ -56,14 +57,31 @@ function scenario(changes) {
   return {error: vm.runInContext('stateError()', context), model: vm.runInContext('stateError()?null:model()', context)};
 }
 
-let result = scenario('S.sips=[{n:"SIP",a:100000,b:0,r:0}];S.goals=[{n:"College",a:3000000,age:41,inf:"G"}];');
+let result = scenario('S.sips=[{n:"SIP",a:100000,b:0,r:0}];S.goals=[{n:"College",a:3000000,age:41,yrs:1,inf:"G"}];');
 assert.equal(result.error, '');
 assert.equal(result.model.acc.unfunded.length, 1);
 assert.equal(result.model.acc.unfunded[0].amount, 1800000);
 assert.ok(Math.abs(result.model.extra - 150000) < 1, 'extra SIP must fund the goal when it is due');
 
-result = scenario('S.sips=[{n:"SIP",a:100000,b:0,r:0}];S.goals=[{n:"Today",a:3000000,age:40,inf:"G"}];');
+result = scenario('S.sips=[{n:"SIP",a:100000,b:0,r:0}];S.goals=[{n:"Today",a:3000000,age:40,yrs:1,inf:"G"}];');
 assert.equal(result.model.extra, Infinity, 'future SIPs cannot pay a goal due today');
+
+result = scenario('S.profile.retAge=40;S.profile.life=44;S.asm.swr=100;S.goals=[{n:"College",a:100000,age:41,yrs:3,inf:"E"}];');
+assert.equal(result.error, '');
+assert.equal(result.model.F.goals, 300000, 'three college payments enter the FIRE rule');
+assert.equal(result.model.F.cash, 300000, 'three college payments enter cash flow');
+result = scenario('S.profile.retAge=40;S.profile.life=45;S.asm.swr=100;S.income=[{n:"Rent",a:1000,from:40,to:43}];');
+assert.equal(result.error, '');
+assert.equal(result.model.F.inc, 12000, 'rent is received in its first year');
+assert.deepEqual(Array.from(result.model.tm.series,row=>row[1]), [0,12000,24000,36000,36000,36000], 'rent stops when the sale age is reached');
+result = scenario('S.profile.retAge=40;S.profile.life=43;S.asm.infG=10;S.income=[{n:"Rent",a:1000,from:40,to:42}];');
+assert.deepEqual(Array.from(result.model.tm.series,row=>Math.round(row[1])), [0,12000,25200,25200], 'rent grows with inflation only while received');
+result = scenario('S.profile.retAge=40;S.profile.life=44;S.asm.infE=10;S.goals=[{n:"College",a:100000,age:41,yrs:3,inf:"E"}];');
+assert.equal(Math.round(result.model.F.goals), 364100, 'each college year is inflated separately');
+result = scenario('S.goals=[{n:"College",a:100000,age:41,yrs:0,inf:"E"}];');
+assert.match(result.error, /Goal years/);
+result = scenario('S.income=[{n:"Rent",a:1000,from:50,to:49}];');
+assert.match(result.error, /stop age/);
 
 result = scenario('S.asm.swr=0;');
 assert.match(result.error, /Safe withdrawal rate/);
@@ -78,7 +96,7 @@ result = scenario('S.profile.retAge=40;S.profile.life=60;S.asm.swr=100;S.yearly=
 assert.equal(result.error, '');
 assert.ok(result.model.F.cash > 1e11, 'cash-flow search must pass its former ceiling');
 
-result = scenario('S.profile.retAge=41;S.profile.life=45;S.goals=[{n:"Goal",a:10000000000,age:41,inf:"G"}];');
+result = scenario('S.profile.retAge=41;S.profile.life=45;S.goals=[{n:"Goal",a:10000000000,age:41,yrs:1,inf:"G"}];');
 assert.equal(result.error, '');
 assert.ok(result.model.extra > 1e8, 'extra SIP search must pass its former ceiling');
 
@@ -146,4 +164,13 @@ assert.equal(vm.runInContext('cappedPlanAge', legacy), true);
 assert.equal(vm.runInContext('loadError', legacy), false);
 assert.equal(migrated.profile.life, 100, 'older saved plan is capped and retained');
 assert.match(vm.runInContext('kvRows(LIFE,"profile")', legacy), /max="100"/);
+const priorPlan = JSON.parse(vm.runInContext('JSON.stringify(EX)', context));
+priorPlan.income.forEach(row => delete row.to);
+priorPlan.goals.forEach(row => delete row.yrs);
+const prior = {sessionStorage: {getItem: () => JSON.stringify(priorPlan)}};
+vm.createContext(prior);
+vm.runInContext(source, prior);
+assert.equal(vm.runInContext('stateError()', prior), '');
+assert.equal(vm.runInContext('S.income[0].to', prior), 120);
+assert.equal(vm.runInContext('S.goals[0].yrs', prior), 1);
 console.log('calculator regressions passed');

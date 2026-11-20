@@ -175,7 +175,7 @@ button[disabled]{opacity:.6;cursor:progress}
         <div class="eyebrow">If you cut post-retirement spending</div>
         <p class="sub" id="cutIntro" style="margin:6px 0 0"></p>
         <div class="tw"><table class="bd cuts" id="cuts"></table></div>
-        <p class="fine">"Left at" is in future rupees; "In today's money" converts it back using general inflation. Cuts apply to your monthly and yearly living expenses from retirement onwards. EMIs, one-time goals and post-retirement income stay as entered.</p>
+        <p class="fine">"Left at" is in future rupees; "In today's money" converts it back using general inflation. Cuts apply to your monthly and yearly living expenses from retirement onwards. EMIs, future goals and post-retirement income stay as entered.</p>
       </div>
     </aside>
   </div>
@@ -214,8 +214,8 @@ const EX={v:3,
   {n:"EPF",a:2500000,r:8.25},{n:"PPF",a:1200000,r:7.1},{n:"NPS",a:800000,r:10},
   {n:"FDs & debt funds",a:1000000,r:7},{n:"Gold / SGBs",a:500000,r:8},{n:"Savings & cash",a:300000,r:3}],
  sips:[{n:"Equity mutual fund SIPs",a:60000,r:12},{n:"EPF (employee + employer)",a:25000,r:8.25},{n:"PPF",a:12500,r:7.1},{n:"NPS",a:10000,r:10}],
- income:[{n:"Rent from second flat",a:20000,from:40},{n:"EPS pension",a:3000,from:58}],
- goals:[{n:"Child's college",a:2500000,age:45,inf:"E"},{n:"Child's wedding",a:2000000,age:52,inf:"G"},{n:"Car replacement",a:1200000,age:55,inf:"G"}]
+ income:[{n:"Rent from second flat",a:20000,from:40,to:120},{n:"EPS pension",a:3000,from:58,to:120}],
+ goals:[{n:"Child's college",a:2500000,age:45,yrs:1,inf:"E"},{n:"Child's wedding",a:2000000,age:52,yrs:1,inf:"G"},{n:"Car replacement",a:1200000,age:55,yrs:1,inf:"G"}]
 };
 const SEC=[
  {k:"monthly",t:"Monthly expenses",h:"What the household spends each month today. \"After retiring\" is the share that continues once you stop work: 0% if it ends, above 100% if it grows.",
@@ -228,14 +228,14 @@ const SEC=[
   cols:[["n","text","Investment"],["a","money","Current value"],["b","money2","Spouse"],["r","pct2","Expected return"]],add:{n:"",a:0,b:0,r:8},tot:"a",tl:"total"},
  {k:"sips",t:"Monthly SIPs & contributions",h:"Ongoing monthly investments. Each person's SIPs continue until that person retires, and rise yearly by the step-up set in Assumptions.",
   cols:[["n","text","SIP"],["a","money","Per month"],["b","money2","Spouse"],["r","pct2","Expected return"]],add:{n:"",a:0,b:0,r:12},tot:"a",tl:"/ month"},
- {k:"income",t:"Income after retiring",h:"Monthly amounts in today's money, assumed to rise with general inflation from the age they start.",
-  cols:[["n","text","Source"],["a","money","Per month"],["from","num","From your age"]],add:{n:"",a:0,from:60},tot:"a",tl:"/ month"},
- {k:"goals",t:"One-time goals",h:"Big future costs in today's money, paid from your investments in the year they fall due.",
-  cols:[["n","text","Goal"],["a","money","Cost today"],["age","num","At your age"],["inf","inf","Inflation"]],add:{n:"",a:0,age:55,inf:"G"},tot:"a",tl:"today's value"}
+ {k:"income",t:"Income after retiring",h:"Monthly amounts in today's money, rising with general inflation. Income stops at the end age; for rent, enter the age when you sell the property.",
+  cols:[["n","text","Source"],["a","money","Per month"],["from","num","From your age"],["to","num","Stops at your age"]],add:{n:"",a:0,from:60,to:120},tot:"a",tl:"/ month"},
+ {k:"goals",t:"Future goals",h:"Enter each year's cost in today's money. For college, set the number of years; the cost rises with the chosen inflation rate each year.",
+  cols:[["n","text","Goal"],["a","money","Cost per year today"],["age","num","First year at your age"],["yrs","num","Years"],["inf","inf","Inflation"]],add:{n:"",a:0,age:55,yrs:1,inf:"G"},tot:"a",tl:"total in today's money"}
 ];
 const LIMITS={age:[0,120],retAge:[0,120],life:[1,100],spAge:[0,120],spRet:[0,120],
  infG:[-99,100],infH:[-99,100],infE:[-99,100],post:[-99,100],swr:[0.01,100],step:[-100,100],reserve:[0,1e15],
- a:[0,1e15],b:[0,1e15],emi:[0,1e15],pct:[0,1000],r:[-99,100],yrs:[0,120],from:[0,120],goalAge:[0,120]};
+ a:[0,1e15],b:[0,1e15],emi:[0,1e15],pct:[0,1000],r:[-99,100],yrs:[0,120],goalYears:[1,120],from:[0,120],to:[0,120],goalAge:[0,120]};
 const validNumber=(v,key)=>typeof v==="number"&&Number.isFinite(v)&&v>=LIMITS[key][0]&&v<=LIMITS[key][1];
 const rangeMessage=(label,key)=>`${label} must be between ${LIMITS[key][0]} and ${LIMITS[key][1]}.`;
 function stateError(plan=S){
@@ -249,10 +249,12 @@ function stateError(plan=S){
    const rows=S[sec.k]; if(!Array.isArray(rows)||rows.length>100) return `Check the ${sec.t} rows (maximum 100).`;
    for(const row of rows){if(!row||typeof row.n!=="string"||row.n.length>120) return `Check names in ${sec.t}.`;
      for(const [k,t] of sec.cols){if(k==="n") continue;
+       if(sec.k==="goals"&&k==="yrs"&&(!validNumber(row[k],"goalYears")||!Number.isInteger(row[k]))) return "Goal years must be a whole number from 1 to 120.";
        if(t==="inf"){if(!Object.hasOwn(INF,row[k])) return `Check inflation type in ${sec.t}.`;}
-       else if(!validNumber(row[k],sec.k==="goals"&&k==="age"?"goalAge":k)) return rangeMessage(`${sec.t}: ${k}`,sec.k==="goals"&&k==="age"?"goalAge":k);
+       else if(!validNumber(row[k],sec.k==="goals"&&k==="age"?"goalAge":sec.k==="goals"&&k==="yrs"?"goalYears":k)) return rangeMessage(`${sec.t}: ${k}`,sec.k==="goals"&&k==="age"?"goalAge":sec.k==="goals"&&k==="yrs"?"goalYears":k);
      }
      if(sec.k==="goals"&&row.age<S.profile.age) return "A goal cannot be due before your current age.";
+     if(sec.k==="income"&&row.to<row.from) return "Income stop age must be at or after its start age.";
    }
  }
  return "";
@@ -267,6 +269,8 @@ let S, loadError=false, storageError=false, pendingAgeError="", cappedPlanAge=fa
 try{S=JSON.parse(sessionStorage.getItem(KEY))}catch(e){loadError=true;}
 if(!S||S.v!==3) S=clone(EX);
 if(S.profile&&S.profile.sp===undefined){S.profile.sp=false;S.profile.spAge=S.profile.age;S.profile.spRet=S.profile.retAge;}
+if(Array.isArray(S.income)) S.income.forEach(r=>{if(r&&r.to===undefined) r.to=120;});
+if(Array.isArray(S.goals)) S.goals.forEach(r=>{if(r&&r.yrs===undefined) r.yrs=1;});
 if(S.assets&&S.sips){["assets","sips"].forEach(k=>{if(Array.isArray(S[k])) S[k].forEach(r=>{if(r&&r.o==="S"){r.b=(+r.b||0)+r.a;r.a=0;} if(r){delete r.o;if(r.b===undefined) r.b=0;}});});}
 if(S.profile&&typeof S.profile.life==="number"&&Number.isFinite(S.profile.life)&&S.profile.life>100){S.profile.life=100;cappedPlanAge=true;}
 if(stateError()){S=clone(EX);["assets","sips"].forEach(k=>S[k].forEach(r=>r.b=0));loadError=true;cappedPlanAge=false;}
@@ -305,8 +309,8 @@ function secBlock(sec){
     if(t==="inf") return `<td class="c-inf"><select ${d} aria-label="Inflation type">${Object.entries(INF).map(([v,l])=>`<option value="${v}"${r[c]===v?" selected":""}>${l}</option>`).join("")}</select></td>`;
     if(t==="money"||t==="money2") return `<td class="c-money"><input type="text" inputmode="numeric" class="money" ${d} value="${fmt(r[c])}" aria-label="${t==="money2"?"Spouse amount":two?"Your amount":"Amount"}"></td>`;
     const suf=t==="pct"||t==="pct2"?"%":"";
-    const bound=LIMITS[sec.k==="goals"&&c==="age"?"goalAge":c];
-    return `<td class="c-${t}"><div class="cell"><input type="number" step="any" min="${bound[0]}" max="${bound[1]}" ${d} value="${r[c]}" aria-label="${c}">${suf?`<span>${suf}</span>`:""}</div></td>`;
+    const bound=LIMITS[sec.k==="goals"&&c==="age"?"goalAge":sec.k==="goals"&&c==="yrs"?"goalYears":c];
+    return `<td class="c-${t}"><div class="cell"><input type="number" step="${sec.k==="goals"&&c==="yrs"?1:"any"}" min="${bound[0]}" max="${bound[1]}" ${d} value="${r[c]}" aria-label="${c}">${suf?`<span>${suf}</span>`:""}</div></td>`;
   }).join("")+`<td class="c-del"><button class="del" type="button" data-del="${sec.k}" data-i="${i}" aria-label="Remove row">×</button></td></tr>`).join("");
   return `<section class="block"><div class="bh"><h2>${sec.t}</h2></div><p class="hint">${sec.h}</p>
    <div class="tw"><table class="ed"><thead><tr>${cols.map(([c,t,l])=>`<th class="c-${t==="money2"?"money":t}">${two&&t==="money"?`${l}<br><span class="who">You</span>`:t==="money2"?`${sec.cols.find(x=>x[1]==="money")[2]}<br><span class="who">Spouse</span>`:l}</th>`).join("")}<th class="c-del"></th></tr></thead><tbody>${rows}</tbody><tfoot><tr>${cols.map(([,t],j)=>j===0?`<td class="ft-l" id="ftl-${sec.k}">Total</td>`:t==="money"?`<td class="ft-v" id="tot-${sec.k}"></td>`:t==="money2"?`<td class="ft-v" id="tot2-${sec.k}"></td>`:`<td></td>`).join("")}<td></td></tr></tfoot></table></div>
@@ -319,7 +323,7 @@ function changeAge(key,value){
   if(key==="age"){
     for(const k of ["retAge","spAge","spRet"]) next.profile[k]+=delta;
     next.profile.life=Math.min(100,next.profile.life+delta);
-    next.income.forEach(r=>r.from+=delta);
+    next.income.forEach(r=>{r.from+=delta;if(r.to!==120) r.to=Math.min(120,r.to+delta);});
     next.goals.forEach(r=>r.age+=delta);
   }else next.profile.spRet+=delta;
   const previous=S;S=next;
@@ -376,8 +380,8 @@ function model(){
   const ret=age0+yrs, life=age0+Math.max(yrs+1,horizon);
   const spendAt=t=>S.monthly.reduce((s,r)=>s+r.a*12*pc(r.pct)*Math.pow(1+rate(r.inf),t),0)+S.yearly.reduce((s,r)=>s+r.a*pc(r.pct)*Math.pow(1+rate(r.inf),t),0);
   const emiAt=t=>S.loans.reduce((s,r)=>s+(t<r.yrs?r.emi*12:0),0);
-  const incAt=(t,a)=>S.income.reduce((s,r)=>s+(a>=r.from?r.a*12*Math.pow(1+g,t):0),0);
-  const goalAt=a=>S.goals.reduce((s,r)=>s+(Math.round(r.age)===a?r.a*Math.pow(1+rate(r.inf),a-age0):0),0);
+  const incAt=(t,a)=>S.income.reduce((s,r)=>s+(a>=r.from&&a<r.to?r.a*12*Math.pow(1+g,t):0),0);
+  const goalAt=a=>S.goals.reduce((s,r)=>s+(a>=Math.round(r.age)&&a<Math.round(r.age)+r.yrs?r.a*Math.pow(1+rate(r.inf),a-age0):0),0);
   const amt=r=>r.a+(sp?(+r.b||0):0);
   const sipR=(()=>{const t=S.sips.reduce((s,r)=>s+amt(r),0);return t?S.sips.reduce((s,r)=>s+amt(r)*pc(r.r),0)/t:.12;})();
 
@@ -408,7 +412,7 @@ function model(){
   function fire(t,youT=yrsYou){
     const a=age0+t, spend=spendAt(t), inc=incAt(t,a), net=Math.max(0,spend-inc), base=swr>0?net/swr:Infinity;
     let emi=0; for(let k=t;k<Math.max(0,...S.loans.map(r=>r.yrs));k++) emi+=emiAt(k)/Math.pow(1+post,k-t);
-    const goals=S.goals.reduce((s,r)=>{const ga=Math.round(r.age); return ga>=a? s+r.a*Math.pow(1+rate(r.inf),ga-age0)/Math.pow(1+post,ga-a):s},0);
+    let goals=0;for(const r of S.goals){for(let ga=Math.max(a,Math.round(r.age));ga<Math.round(r.age)+r.yrs;ga++) goals+=r.a*Math.pow(1+rate(r.inf),ga-age0)/Math.pow(1+post,ga-a);}
     const reserve=A.reserve*Math.pow(1+pc(A.infH),t);
     const rule=base+emi+goals+reserve;
     let lo=0,hi=1;
@@ -457,7 +461,7 @@ function calc(){
   const at=a=>sp?`in ${lab(a)}`:`at ${lab(a)}`;
   const sl=a=>sp?`${yr(a)}`:`age ${a}`;
   const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
-  SEC.forEach(s=>{const el=$("tot-"+s.k); if(el){const t=S[s.k].reduce((a,r)=>a+(+r[s.tot]||0),0); const yr=x=>`<small>${s.tl}${s.tl==="/ month"?` · ${inr(x*12)} / year`:""}</small>`;
+  SEC.forEach(s=>{const el=$("tot-"+s.k); if(el){const t=S[s.k].reduce((a,r)=>a+(s.k==="goals"?r.a*r.yrs:(+r[s.tot]||0)),0); const yr=x=>`<small>${s.tl}${s.tl==="/ month"?` · ${inr(x*12)} / year`:""}</small>`;
     el.innerHTML=`${inr(t)}${yr(t)}`;
     const e2=$("tot2-"+s.k), fl=$("ftl-"+s.k);
     if(e2){const t2=S[s.k].reduce((a,r)=>a+(+r.b||0),0); e2.innerHTML=`${inr(t2)}${yr(t2)}`; fl.innerHTML=`Total<small>Household ${inr(t+t2)}${s.tl==="/ month"?" / month":""}</small>`;}}});

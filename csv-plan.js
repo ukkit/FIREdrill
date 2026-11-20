@@ -1,6 +1,6 @@
 /* FIREdrill input backup. Kept separate so both layouts use the same file format. */
 const CSV_HEADER=["section","index","field","value"];
-const CSV_FORMAT="firedrill-csv-v1";
+const CSV_FORMAT="firedrill-csv-v2";
 const CSV_PROFILE=["age","retAge","life","sp","spAge","spRet"];
 
 function csvFilename(date=new Date()){
@@ -53,11 +53,12 @@ function csvRecords(text){
 function csvImport(text,sections,assumptions,validate){
  const rows=csvRecords(text.replace(/^\uFEFF/,""));
  if(rows.length<2||rows[0].some((value,i)=>value!==CSV_HEADER[i])||
-    rows[1][0]!=="meta"||rows[1][1]!==""||rows[1][2]!=="format"||rows[1][3]!==CSV_FORMAT)
+    rows[1][0]!=="meta"||rows[1][1]!==""||rows[1][2]!=="format"||!([CSV_FORMAT,"firedrill-csv-v1"].includes(rows[1][3])))
   throw Error("This is not a supported FIREdrill CSV file.");
+ const legacy=rows[1][3]==="firedrill-csv-v1";
  const plan={v:3,profile:{},asm:{}};
  const fields=new Map(),counts=new Map(),seen=new Set();
- for(const sec of sections){plan[sec.k]=[];fields.set(sec.k,sec.cols.map(([key])=>key));}
+ for(const sec of sections){plan[sec.k]=[];fields.set(sec.k,sec.cols.filter(([key])=>!legacy||!((sec.k==="income"&&key==="to")||(sec.k==="goals"&&key==="yrs"))).map(([key])=>key));}
  const asmKeys=assumptions.map(([key])=>key);
  for(const [group,index,key,value] of rows.slice(2)){
   const id=[group,index,key].join("/");
@@ -92,6 +93,7 @@ function csvImport(text,sections,assumptions,validate){
   if(count===undefined||items.length!==count||items.some(item=>!item||Object.keys(item).length!==fields.get(sec.k).length))
    throw Error(`CSV is missing ${sec.t} data.`);
  }
+ if(legacy){plan.income.forEach(row=>row.to=120);plan.goals.forEach(row=>row.yrs=1);}
  const problem=validate(plan);
  if(problem) throw Error(problem);
  return plan;
@@ -107,7 +109,12 @@ function csvNumber(value){
 function setupCsvControls(getPlan,applyPlan,sections,assumptions,validate){
  const message=document.getElementById("fileMessage");
  const fileInput=document.getElementById("csvFile");
- const say=(text,error)=>{message.textContent=text;message.hidden=false;message.dataset.error=String(error);};
+ let noticeTimer;
+ const say=(text,error,dismissAfter=0)=>{
+  clearTimeout(noticeTimer);
+  message.textContent=text;message.hidden=false;message.dataset.error=String(error);
+  if(dismissAfter) noticeTimer=setTimeout(()=>{message.hidden=true;},dismissAfter);
+ };
  document.getElementById("exportCsv").addEventListener("click",()=>{
   const plan=getPlan(),problem=validate(plan);
   if(problem){say(problem,true);return;}
@@ -128,7 +135,7 @@ function setupCsvControls(getPlan,applyPlan,sections,assumptions,validate){
   try{
    const plan=csvImport(contents,sections,assumptions,validate);
    const saved=applyPlan(plan);
-   say(saved?"CSV imported. Your plan has been restored.":"CSV imported, but this browser could not save it in this tab. Export it again before closing the page.",!saved);
+   say(saved?"CSV imported. Your plan has been restored.":"CSV imported, but this browser could not save it in this tab. Export it again before closing the page.",!saved,saved?5_000:0);
   }catch(error){
    say(error instanceof Error?error.message:"Could not read this CSV file.",true);
   }

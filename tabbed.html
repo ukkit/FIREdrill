@@ -123,34 +123,23 @@ button.primary:hover{filter:brightness(1.08)}
 button[disabled]{opacity:.6;cursor:progress}
 #fileMessage[data-error="false"]{border-color:var(--good);background:var(--surface);color:var(--good)}
 @media(max-width:760px){.note{grid-template-columns:1fr}}
-/* Guided view: strong blue/amber contrast and explicit status labels work without color cues. */
-:root{
-  --bg:#f3f7fb;--surface:#fff;--sunk:#edf3f8;--ink:#18283a;--muted:#45596d;--line:#bdcbd8;
-  --accent:#005f99;--accent-soft:#e4f2fa;--gold:#8a4b00;--gold-soft:#fff0d7;
-  --good:#005f99;--good-bg:#e4f2fa;--bad:#9c3a00;--bad-bg:#fff0e5;
-  --display:Georgia,"Times New Roman",serif;--body:Verdana,Geneva,sans-serif;--mono:Consolas,"Liberation Mono",monospace;
-}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
-  --bg:#0e1b27;--surface:#172838;--sunk:#102231;--ink:#f0f5f9;--muted:#b7c8d6;--line:#40586d;
-  --accent:#79caff;--accent-soft:#173e58;--gold:#ffbe77;--gold-soft:#493015;
-  --good:#79caff;--good-bg:#173e58;--bad:#ffad78;--bad-bg:#4a291a;
-  color-scheme:dark}}
+:root{--display:Georgia,"Times New Roman",serif;--body:Verdana,Geneva,sans-serif;--mono:Consolas,"Liberation Mono",monospace}
 body{font-size:16px;line-height:1.6}
 .wrap{max-width:1280px;margin:auto;padding-block:26px 70px}
 header{display:flex;align-items:center;justify-content:space-between;gap:24px;border-bottom:3px solid var(--ink);padding-bottom:20px}
 header h1{font-size:clamp(2.2rem,5vw,3.8rem);letter-spacing:-.045em}
 header p{max-width:47ch;font-size:1rem;line-height:1.5;margin:0}
-.note{border:0;border-radius:0;background:var(--accent-soft);color:var(--ink);margin:18px 0 20px;padding:14px 18px;font-size:.9rem}
-.note strong{color:var(--accent)}
+.note{margin:18px 0 20px;padding:14px 18px;font-size:.9rem}
 .tabs{display:flex;gap:6px;overflow-x:auto;scrollbar-width:thin;border-bottom:2px solid var(--line);margin-bottom:26px;padding:0 2px;position:sticky;top:0;z-index:10;background:var(--bg)}
 .tabs button{flex:none;border:0;border-bottom:4px solid transparent;border-radius:0;background:transparent;padding:13px 17px 10px;font-weight:600;font-size:.92rem;color:var(--muted);white-space:nowrap}
 .tabs button[aria-selected="true"]{color:var(--accent);border-bottom-color:var(--accent);background:var(--accent-soft)}
 .tabs button:hover{color:var(--ink);background:var(--sunk)}
-.tabs .outlook-tab{color:var(--accent);background:var(--accent-soft);border-bottom-color:var(--accent);font-weight:700}
-.tabs .outlook-tab[aria-selected="true"],.tabs .outlook-tab:hover{color:var(--surface);background:var(--accent)}
+.tabs .outlook-tab{color:var(--gold);background:var(--gold-soft);border-bottom-color:var(--gold);font-weight:700}
+.tabs .outlook-tab:hover:not([aria-selected="true"]){color:var(--gold);background:var(--gold-soft);text-decoration:underline}
+.tabs .outlook-tab[aria-selected="true"]{color:var(--accent);background:var(--accent-soft);border-bottom-color:var(--accent)}
 .grid{display:block}
-body[data-tab="outlook"] .inputs,body[data-tab="insights"] .inputs{display:none}
-body:not([data-tab="outlook"]):not([data-tab="insights"]) .results{display:none}
+body[data-tab="outlook"] .inputs,body[data-tab="insights"] .inputs,body[data-tab="monthly"] .inputs{display:none}
+body:not([data-tab="outlook"]):not([data-tab="insights"]):not([data-tab="monthly"]) .results{display:none}
 .inputs,.results{width:100%;max-width:none}
 .inputs{display:block}
 .pane,.result-pane{display:block}
@@ -159,11 +148,11 @@ body:not([data-tab="outlook"]):not([data-tab="insights"]) .results{display:none}
 .overview-copy{font-size:1rem;line-height:1.8}
 .overview-copy p{margin:0 0 1.3rem}
 .overview-copy p:last-child{margin-bottom:0}
-.panel-intro{margin:0 0 18px}
+.panel-intro{grid-column:1/-1;width:100%;margin:0 0 18px}
 .panel-intro h2{font-family:var(--display);font-weight:700;font-size:clamp(1.6rem,3vw,2.1rem);line-height:1.2;margin:0 0 4px}
-.panel-intro p{color:var(--muted);margin:0;max-width:65ch}
-.block,.card{border-radius:12px;box-shadow:0 2px 8px rgba(24,40,58,.05);padding:22px}
-.block .bh h2{font-family:var(--display);font-weight:700;font-size:1.25rem;color:var(--ink)}
+.panel-intro p{color:var(--muted);margin:0}
+.block,.card{border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.05);padding:22px}
+.block .bh h2{font-family:var(--display);font-weight:700;font-size:1.25rem}
 .hint{font-size:.92rem;max-width:85ch}
 .ed th{font-size:.8rem}.ed td{padding:6px 5px}
 .ed input,.ed select,.kv input{font-size:.95rem;min-height:40px}
@@ -171,7 +160,16 @@ body:not([data-tab="outlook"]):not([data-tab="insights"]) .results{display:none}
 .kvgrid{grid-template-columns:repeat(auto-fit,minmax(270px,1fr))}
 .results{position:static;display:block}
 .result-pane{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px;align-items:start}
-#panel-insights{grid-template-columns:1fr}
+#panel-insights,#panel-monthly{grid-template-columns:1fr}
+.cashflow-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.cashflow-controls select{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:6px 10px}
+.cashflow{width:100%;min-width:1150px;border-collapse:collapse;font-family:var(--mono);font-size:.8rem;font-variant-numeric:tabular-nums;white-space:nowrap}
+.cashflow th,.cashflow td{padding:7px 9px;border-bottom:1px solid var(--line);text-align:right}
+.cashflow th:first-child,.cashflow td:first-child{text-align:left}
+.cashflow thead th{position:sticky;top:0;background:var(--surface);color:var(--muted);font-family:var(--body);font-size:.78rem}
+.cashflow tbody tr:nth-child(even){background:var(--sunk)}
+.cashflow tbody tr.year-end{border-bottom:2px solid var(--accent)}
+.cashflow tbody tr.depleted{color:var(--bad)}
 .card{min-width:0}
 .card .eyebrow{font-size:.82rem;letter-spacing:.05em}
 .card .big{font-size:clamp(2rem,4vw,3.2rem)}
@@ -210,6 +208,7 @@ body:not([data-tab="outlook"]):not([data-tab="insights"]) .results{display:none}
     <button type="button" role="tab" class="outlook-tab" id="tab-outlook" data-tab="outlook" aria-controls="panel-outlook" aria-selected="false">Outlook</button>
     <button type="button" role="tab" id="tab-assumptions" data-tab="assumptions" aria-controls="panel-assumptions" aria-selected="false">Assumptions</button>
     <button type="button" role="tab" id="tab-insights" data-tab="insights" aria-controls="panel-insights" aria-selected="false">Insights</button>
+    <button type="button" role="tab" id="tab-monthly" data-tab="monthly" aria-controls="panel-monthly" aria-selected="false">Monthly cash flow</button>
   </nav>
 
   <div class="grid">
@@ -217,7 +216,7 @@ body:not([data-tab="outlook"]):not([data-tab="insights"]) .results{display:none}
 
     <aside class="results" id="results" aria-live="polite">
       <section class="result-pane" id="panel-outlook" role="tabpanel" aria-labelledby="tab-outlook" hidden>
-      <div class="panel-intro" style="grid-column:1/-1"><h2>Your outlook</h2><p>The two answers to start with: your planned retirement and what happens if you stop working now.</p></div>
+      <div class="panel-intro"><h2>Your outlook</h2><p>The two answers to start with: your planned retirement and what happens if you stop working now.</p></div>
       <div class="card">
         <div class="eyebrow" id="fLabel">FIRE number at retirement</div>
         <div class="result-headline"><div class="big c-acc" id="fire">–</div><div class="sub" id="fireToday"><span>≈ <strong id="fireTodayAmount"></strong> in today's money</span><span><strong id="fireTodayYears"></strong> <span id="fireTodayUnit"></span> from now</span></div></div>
@@ -255,7 +254,17 @@ body:not([data-tab="outlook"]):not([data-tab="insights"]) .results{display:none}
         <div class="eyebrow">If you cut post-retirement spending</div>
         <p class="sub" id="cutIntro" style="margin:6px 0 0"></p>
         <div class="tw"><table class="bd cuts" id="cuts"></table></div>
-        <p class="fine">"Left at" is in future rupees; "In today's money" converts it back using general inflation. Cuts apply to your monthly and yearly living expenses from retirement onwards. EMIs, one-time goals and post-retirement income stay as entered.</p>
+        <p class="fine">"Left at" is in future rupees; "In today's money" converts it back using general inflation. Cuts apply to your monthly and yearly living expenses from retirement onwards. EMIs, future goals and post-retirement income stay as entered.</p>
+      </div>
+      </section>
+
+      <section class="result-pane" id="panel-monthly" role="tabpanel" aria-labelledby="tab-monthly" hidden>
+      <div class="panel-intro"><h2>Monthly cash flow</h2><p>See how the investment balance changes month by month under the current plan.</p></div>
+      <div class="card">
+        <div class="cashflow-controls"><label for="monthlyScenario">Starting point</label><select id="monthlyScenario"><option value="planned">Planned retirement</option><option value="today">Retire today</option></select></div>
+        <p class="fine" id="monthlyExplanation">Withdrawal is living costs and EMIs less other income and continuing SIPs. Interest uses the balance after withdrawal at the annual RoI divided by 12; goals are year-end lump sums. Yearly inc is the change in monthly withdrawal, and yearly exp totals withdrawals and lump sums. RoI chg is blank because the plan uses one return. This monthly illustration may differ from the annual Outlook.</p>
+        <p class="fine" id="monthlyStatus" role="status"></p>
+        <div class="tw"><table class="cashflow"><thead><tr><th>Month</th><th>Brought forward</th><th>Withdrawal</th><th>RoI</th><th>Int earned</th><th>Carried forward</th><th>Lump sum</th><th>Yearly inc</th><th>RoI chg</th><th>Yearly exp</th></tr></thead><tbody id="monthlyRows"></tbody></table></div>
       </div>
       </section>
     </aside>
@@ -295,8 +304,8 @@ const EX={v:3,
   {n:"EPF",a:2500000,r:8.25},{n:"PPF",a:1200000,r:7.1},{n:"NPS",a:800000,r:10},
   {n:"FDs & debt funds",a:1000000,r:7},{n:"Gold / SGBs",a:500000,r:8},{n:"Savings & cash",a:300000,r:3}],
  sips:[{n:"Equity mutual fund SIPs",a:60000,r:12},{n:"EPF (employee + employer)",a:25000,r:8.25},{n:"PPF",a:12500,r:7.1},{n:"NPS",a:10000,r:10}],
- income:[{n:"Rent from second flat",a:20000,from:40},{n:"EPS pension",a:3000,from:58}],
- goals:[{n:"Child's college",a:2500000,age:45,inf:"E"},{n:"Child's wedding",a:2000000,age:52,inf:"G"},{n:"Car replacement",a:1200000,age:55,inf:"G"}]
+ income:[{n:"Rent from second flat",a:20000,from:40,to:120},{n:"EPS pension",a:3000,from:58,to:120}],
+ goals:[{n:"Child's college",a:2500000,age:45,yrs:1,inf:"E"},{n:"Child's wedding",a:2000000,age:52,yrs:1,inf:"G"},{n:"Car replacement",a:1200000,age:55,yrs:1,inf:"G"}]
 };
 const SEC=[
  {k:"monthly",t:"Monthly expenses",h:"What the household spends each month today. \"After retiring\" is the share that continues once you stop work: 0% if it ends, above 100% if it grows.",
@@ -309,14 +318,14 @@ const SEC=[
   cols:[["n","text","Investment"],["a","money","Current value"],["b","money2","Spouse"],["r","pct2","Expected return"]],add:{n:"",a:0,b:0,r:8},tot:"a",tl:"total"},
  {k:"sips",t:"Monthly SIPs & contributions",h:"Ongoing monthly investments. Each person's SIPs continue until that person retires, and rise yearly by the step-up set in Assumptions.",
   cols:[["n","text","SIP"],["a","money","Per month"],["b","money2","Spouse"],["r","pct2","Expected return"]],add:{n:"",a:0,b:0,r:12},tot:"a",tl:"/ month"},
- {k:"income",t:"Income after retiring",h:"Monthly amounts in today's money, assumed to rise with general inflation from the age they start.",
-  cols:[["n","text","Source"],["a","money","Per month"],["from","num","From your age"]],add:{n:"",a:0,from:60},tot:"a",tl:"/ month"},
- {k:"goals",t:"One-time goals",h:"Big future costs in today's money, paid from your investments in the year they fall due.",
-  cols:[["n","text","Goal"],["a","money","Cost today"],["age","num","At your age"],["inf","inf","Inflation"]],add:{n:"",a:0,age:55,inf:"G"},tot:"a",tl:"today's value"}
+ {k:"income",t:"Income after retiring",h:"Monthly amounts in today's money, rising with general inflation. Income stops at the end age; for rent, enter the age when you sell the property.",
+  cols:[["n","text","Source"],["a","money","Per month"],["from","num","From your age"],["to","num","Stops at your age"]],add:{n:"",a:0,from:60,to:120},tot:"a",tl:"/ month"},
+ {k:"goals",t:"Future goals",h:"Enter each year's cost in today's money. For college, set the number of years; the cost rises with the chosen inflation rate each year.",
+  cols:[["n","text","Goal"],["a","money","Cost per year today"],["age","num","First year at your age"],["yrs","num","Years"],["inf","inf","Inflation"]],add:{n:"",a:0,age:55,yrs:1,inf:"G"},tot:"a",tl:"total in today's money"}
 ];
 const LIMITS={age:[0,120],retAge:[0,120],life:[1,100],spAge:[0,120],spRet:[0,120],
  infG:[-99,100],infH:[-99,100],infE:[-99,100],post:[-99,100],swr:[0.01,100],step:[-100,100],reserve:[0,1e15],
- a:[0,1e15],b:[0,1e15],emi:[0,1e15],pct:[0,1000],r:[-99,100],yrs:[0,120],from:[0,120],goalAge:[0,120]};
+ a:[0,1e15],b:[0,1e15],emi:[0,1e15],pct:[0,1000],r:[-99,100],yrs:[0,120],goalYears:[1,120],from:[0,120],to:[0,120],goalAge:[0,120]};
 const validNumber=(v,key)=>typeof v==="number"&&Number.isFinite(v)&&v>=LIMITS[key][0]&&v<=LIMITS[key][1];
 const rangeMessage=(label,key)=>`${label} must be between ${LIMITS[key][0]} and ${LIMITS[key][1]}.`;
 function stateError(plan=S){
@@ -330,10 +339,12 @@ function stateError(plan=S){
    const rows=S[sec.k]; if(!Array.isArray(rows)||rows.length>100) return `Check the ${sec.t} rows (maximum 100).`;
    for(const row of rows){if(!row||typeof row.n!=="string"||row.n.length>120) return `Check names in ${sec.t}.`;
      for(const [k,t] of sec.cols){if(k==="n") continue;
+       if(sec.k==="goals"&&k==="yrs"&&(!validNumber(row[k],"goalYears")||!Number.isInteger(row[k]))) return "Goal years must be a whole number from 1 to 120.";
        if(t==="inf"){if(!Object.hasOwn(INF,row[k])) return `Check inflation type in ${sec.t}.`;}
-       else if(!validNumber(row[k],sec.k==="goals"&&k==="age"?"goalAge":k)) return rangeMessage(`${sec.t}: ${k}`,sec.k==="goals"&&k==="age"?"goalAge":k);
+       else if(!validNumber(row[k],sec.k==="goals"&&k==="age"?"goalAge":sec.k==="goals"&&k==="yrs"?"goalYears":k)) return rangeMessage(`${sec.t}: ${k}`,sec.k==="goals"&&k==="age"?"goalAge":sec.k==="goals"&&k==="yrs"?"goalYears":k);
      }
      if(sec.k==="goals"&&row.age<S.profile.age) return "A goal cannot be due before your current age.";
+     if(sec.k==="income"&&row.to<row.from) return "Income stop age must be at or after its start age.";
    }
  }
  return "";
@@ -348,6 +359,8 @@ let S, loadError=false, storageError=false, pendingAgeError="", cappedPlanAge=fa
 try{S=JSON.parse(sessionStorage.getItem(KEY))}catch(e){loadError=true;}
 if(!S||S.v!==3) S=clone(EX);
 if(S.profile&&S.profile.sp===undefined){S.profile.sp=false;S.profile.spAge=S.profile.age;S.profile.spRet=S.profile.retAge;}
+if(Array.isArray(S.income)) S.income.forEach(r=>{if(r&&r.to===undefined) r.to=120;});
+if(Array.isArray(S.goals)) S.goals.forEach(r=>{if(r&&r.yrs===undefined) r.yrs=1;});
 if(S.assets&&S.sips){["assets","sips"].forEach(k=>{if(Array.isArray(S[k])) S[k].forEach(r=>{if(r&&r.o==="S"){r.b=(+r.b||0)+r.a;r.a=0;} if(r){delete r.o;if(r.b===undefined) r.b=0;}});});}
 if(S.profile&&typeof S.profile.life==="number"&&Number.isFinite(S.profile.life)&&S.profile.life>100){S.profile.life=100;cappedPlanAge=true;}
 if(stateError()){S=clone(EX);["assets","sips"].forEach(k=>S[k].forEach(r=>r.b=0));loadError=true;cappedPlanAge=false;}
@@ -386,8 +399,8 @@ function secBlock(sec){
     if(t==="inf") return `<td class="c-inf"><select ${d} aria-label="Inflation type">${Object.entries(INF).map(([v,l])=>`<option value="${v}"${r[c]===v?" selected":""}>${l}</option>`).join("")}</select></td>`;
     if(t==="money"||t==="money2") return `<td class="c-money"><input type="text" inputmode="numeric" class="money" ${d} value="${fmt(r[c])}" aria-label="${t==="money2"?"Spouse amount":two?"Your amount":"Amount"}"></td>`;
     const suf=t==="pct"||t==="pct2"?"%":"";
-    const bound=LIMITS[sec.k==="goals"&&c==="age"?"goalAge":c];
-    return `<td class="c-${t}"><div class="cell"><input type="number" step="any" min="${bound[0]}" max="${bound[1]}" ${d} value="${r[c]}" aria-label="${c}">${suf?`<span>${suf}</span>`:""}</div></td>`;
+    const bound=LIMITS[sec.k==="goals"&&c==="age"?"goalAge":sec.k==="goals"&&c==="yrs"?"goalYears":c];
+    return `<td class="c-${t}"><div class="cell"><input type="number" step="${sec.k==="goals"&&c==="yrs"?1:"any"}" min="${bound[0]}" max="${bound[1]}" ${d} value="${r[c]}" aria-label="${c}">${suf?`<span>${suf}</span>`:""}</div></td>`;
   }).join("")+`<td class="c-del"><button class="del" type="button" data-del="${sec.k}" data-i="${i}" aria-label="Remove row">×</button></td></tr>`).join("");
   return `<section class="block"><div class="bh"><h2>${sec.t}</h2></div><p class="hint">${sec.h}</p>
    <div class="tw"><table class="ed"><thead><tr>${cols.map(([c,t,l])=>`<th class="c-${t==="money2"?"money":t}">${two&&t==="money"?`${l}<br><span class="who">You</span>`:t==="money2"?`${sec.cols.find(x=>x[1]==="money")[2]}<br><span class="who">Spouse</span>`:l}</th>`).join("")}<th class="c-del"></th></tr></thead><tbody>${rows}</tbody><tfoot><tr>${cols.map(([,t],j)=>j===0?`<td class="ft-l" id="ftl-${sec.k}">Total</td>`:t==="money"?`<td class="ft-v" id="tot-${sec.k}"></td>`:t==="money2"?`<td class="ft-v" id="tot2-${sec.k}"></td>`:`<td></td>`).join("")}<td></td></tr></tfoot></table></div>
@@ -400,7 +413,7 @@ function changeAge(key,value){
   if(key==="age"){
     for(const k of ["retAge","spAge","spRet"]) next.profile[k]+=delta;
     next.profile.life=Math.min(100,next.profile.life+delta);
-    next.income.forEach(r=>r.from+=delta);
+    next.income.forEach(r=>{r.from+=delta;if(r.to!==120) r.to=Math.min(120,r.to+delta);});
     next.goals.forEach(r=>r.age+=delta);
   }else next.profile.spRet+=delta;
   const previous=S;S=next;
@@ -414,12 +427,14 @@ function pane(key,title,description,content){
     <div class="panel-intro"><h2>${title}</h2>${description?`<p>${description}</p>`:""}</div>${content}</section>`;
 }
 function activateTab(key,focus=false){
+  const changed=activeTab!==key;
   activeTab=key;document.body.dataset.tab=key;
   document.querySelectorAll('.tabs [role="tab"]').forEach(b=>{
     const selected=b.dataset.tab===key;b.setAttribute("aria-selected",String(selected));b.tabIndex=selected?0:-1;
     if(selected&&focus) b.focus();
   });
   document.querySelectorAll('[role="tabpanel"]').forEach(p=>p.hidden=p.id!==`panel-${key}`);
+  if(changed&&key==="monthly"&&!stateError()&&!pendingAgeError&&!loadError) renderMonthly(model());
 }
 document.querySelector(".tabs").addEventListener("click",e=>{
   const b=e.target.closest('[role="tab"]');if(b) activateTab(b.dataset.tab);
@@ -487,8 +502,8 @@ function model(){
   const ret=age0+yrs, life=age0+Math.max(yrs+1,horizon);
   const spendAt=t=>S.monthly.reduce((s,r)=>s+r.a*12*pc(r.pct)*Math.pow(1+rate(r.inf),t),0)+S.yearly.reduce((s,r)=>s+r.a*pc(r.pct)*Math.pow(1+rate(r.inf),t),0);
   const emiAt=t=>S.loans.reduce((s,r)=>s+(t<r.yrs?r.emi*12:0),0);
-  const incAt=(t,a)=>S.income.reduce((s,r)=>s+(a>=r.from?r.a*12*Math.pow(1+g,t):0),0);
-  const goalAt=a=>S.goals.reduce((s,r)=>s+(Math.round(r.age)===a?r.a*Math.pow(1+rate(r.inf),a-age0):0),0);
+  const incAt=(t,a)=>S.income.reduce((s,r)=>s+(a>=r.from&&a<r.to?r.a*12*Math.pow(1+g,t):0),0);
+  const goalAt=a=>S.goals.reduce((s,r)=>s+(a>=Math.round(r.age)&&a<Math.round(r.age)+r.yrs?r.a*Math.pow(1+rate(r.inf),a-age0):0),0);
   const amt=r=>r.a+(sp?(+r.b||0):0);
   const sipR=(()=>{const t=S.sips.reduce((s,r)=>s+amt(r),0);return t?S.sips.reduce((s,r)=>s+amt(r)*pc(r.r),0)/t:.12;})();
 
@@ -519,7 +534,7 @@ function model(){
   function fire(t,youT=yrsYou){
     const a=age0+t, spend=spendAt(t), inc=incAt(t,a), net=Math.max(0,spend-inc), base=swr>0?net/swr:Infinity;
     let emi=0; for(let k=t;k<Math.max(0,...S.loans.map(r=>r.yrs));k++) emi+=emiAt(k)/Math.pow(1+post,k-t);
-    const goals=S.goals.reduce((s,r)=>{const ga=Math.round(r.age); return ga>=a? s+r.a*Math.pow(1+rate(r.inf),ga-age0)/Math.pow(1+post,ga-a):s},0);
+    let goals=0;for(const r of S.goals){for(let ga=Math.max(a,Math.round(r.age));ga<Math.round(r.age)+r.yrs;ga++) goals+=r.a*Math.pow(1+rate(r.inf),ga-age0)/Math.pow(1+post,ga-a);}
     const reserve=A.reserve*Math.pow(1+pc(A.infH),t);
     const rule=base+emi+goals+reserve;
     let lo=0,hi=1;
@@ -558,6 +573,51 @@ function model(){
   return {cuts,P:{age0,ret,life,yrs,sp,d},F,acc,plan,extra,minC,c0,tm,w0,F0,todaySpend,emiNow:emiAt(0)*1,sipNow:S.sips.reduce((s,r)=>s+amt(r),0),swr};
 }
 
+function monthlyProjection(M,mode){
+  const {age0,life,yrs}=M.P, startYear=mode==="today"?0:yrs;
+  if(mode==="planned"&&M.acc.unfunded.length) return {rows:[],status:"A goal before retirement is unfunded. Adjust the plan before using this projection."};
+  const rate=k=>(k==="H"?S.asm.infH:k==="E"?S.asm.infE:S.asm.infG)/100;
+  const growth=t=>Math.pow(1+S.asm.infG/100,t);
+  const spouseYears=S.profile.sp?Math.max(0,Math.round(S.profile.spRet-S.profile.spAge)):0;
+  const goalAt=a=>S.goals.reduce((sum,r)=>sum+(a>=Math.round(r.age)&&a<Math.round(r.age)+r.yrs?r.a*Math.pow(1+rate(r.inf),a-age0):0),0);
+  let balance=mode==="today"?M.c0:M.acc.total, previousWithdrawal=null, yearlyOutflow=0;
+  const rows=[], months=(life-age0-startYear)*12;
+  for(let month=1;month<=months;month++){
+    const year=Math.floor((month-1)/12), t=startYear+year, age=age0+t;
+    const living=S.monthly.reduce((sum,r)=>sum+r.a*r.pct/100*Math.pow(1+rate(r.inf),t),0)+
+      S.yearly.reduce((sum,r)=>sum+r.a*r.pct/100*Math.pow(1+rate(r.inf),t)/12,0);
+    const emi=S.loans.reduce((sum,r)=>sum+(t<r.yrs?r.emi:0),0);
+    const income=S.income.reduce((sum,r)=>sum+(age>=r.from&&age<r.to?r.a*growth(t):0),0);
+    const contributions=S.sips.reduce((sum,r)=>sum+((mode==="planned"&&t<Math.round(S.profile.retAge-S.profile.age)?r.a:0)+
+      (S.profile.sp&&t<spouseYears?(+r.b||0):0))*Math.pow(1+S.asm.step/100,t),0);
+    const withdrawal=living+emi-income-contributions;
+    const lump=month%12===0?goalAt(age):0;
+    const interest=Math.max(0,balance-withdrawal)*S.asm.post/1200;
+    const ending=balance-withdrawal+interest-lump;
+    yearlyOutflow+=withdrawal+lump;
+    const yearEnd=month%12===0, depleted=ending<0;
+    rows.push({month,brought:balance,withdrawal,roi:S.asm.post,interest,carried:Math.max(0,ending),lump,
+      yearlyInc:month>12&&month%12===1?withdrawal-previousWithdrawal:null,
+      yearlyExp:yearEnd||depleted?yearlyOutflow:null,depleted,shortfall:depleted?-ending:0});
+    balance=Math.max(0,ending);
+    if(yearEnd){previousWithdrawal=withdrawal;yearlyOutflow=0;}
+    if(depleted) break;
+  }
+  const last=rows.at(-1);
+  return {rows,status:last?.depleted?`Funds run out in month ${last.month}; the final month's shortfall is ${inr(last.shortfall)}.`:
+    `Projected from age ${age0+startYear} through age ${life}. Amounts are in future rupees.`};
+}
+
+function renderMonthly(M){
+  const mode=document.getElementById("monthlyScenario").value;
+  const projection=monthlyProjection(M,mode), dash="–";
+  document.getElementById("monthlyStatus").textContent=projection.status;
+  document.getElementById("monthlyRows").innerHTML=projection.rows.map(r=>`<tr class="${r.depleted?"depleted":r.month%12===0?"year-end":""}">
+    <td>${r.month}</td><td>${inr(r.brought)}</td><td>${inr(r.withdrawal)}</td><td>${r.roi.toFixed(1)}%</td>
+    <td>${inr(r.interest)}</td><td>${inr(r.carried)}</td><td>${r.lump?inr(r.lump):dash}</td>
+    <td>${r.yearlyInc===null?dash:inr(r.yearlyInc)}</td><td>${dash}</td><td>${r.yearlyExp===null?dash:inr(r.yearlyExp)}</td></tr>`).join("");
+}
+
 function calc(){
   const problem=stateError();
   if(problem||pendingAgeError||loadError){showError(problem||pendingAgeError||"Saved inputs could not be loaded. Example figures are shown; reset or edit them to continue.");return;}
@@ -568,7 +628,7 @@ function calc(){
   const at=a=>sp?`in ${lab(a)}`:`at ${lab(a)}`;
   const sl=a=>sp?`${yr(a)}`:`age ${a}`;
   const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
-  SEC.forEach(s=>{const el=$("tot-"+s.k); if(el){const t=S[s.k].reduce((a,r)=>a+(+r[s.tot]||0),0); const yr=x=>`<small>${s.tl}${s.tl==="/ month"?` · ${inr(x*12)} / year`:""}</small>`;
+  SEC.forEach(s=>{const el=$("tot-"+s.k); if(el){const t=S[s.k].reduce((a,r)=>a+(s.k==="goals"?r.a*r.yrs:(+r[s.tot]||0)),0); const yr=x=>`<small>${s.tl}${s.tl==="/ month"?` · ${inr(x*12)} / year`:""}</small>`;
     el.innerHTML=`${inr(t)}${yr(t)}`;
     const e2=$("tot2-"+s.k), fl=$("ftl-"+s.k);
     if(e2){const t2=S[s.k].reduce((a,r)=>a+(+r.b||0),0); e2.innerHTML=`${inr(t2)}${yr(t2)}`; fl.innerHTML=`Total<small>Household ${inr(t+t2)}${s.tl==="/ month"?" / month":""}</small>`;}}});
@@ -618,6 +678,7 @@ function calc(){
     M.cuts.map(c=>`<tr class="${c.p===0?"cur":""}"><td>${c.p===0?"None (current plan)":c.p+"% less"}</td><td>${inr(c.spend)}</td><td>${c.dep===null?"Beyond 120":`${cap(sl(Math.floor(c.dep)))} · ${Math.floor(c.dep-ret)} yrs`}</td><td>${c.atLife===null?"–":inr(c.atLife)}</td><td>${c.atLife===null?"–":inr(c.atLife/Math.pow(1+S.asm.infG/100,life-age0))}</td></tr>`).join("")+`</tbody>`;
   if(missed) $("chart").innerHTML='<text class="axis" x="320" y="130" text-anchor="middle">Planned path unavailable: goal is unfunded</text>';
   else draw(M.acc.path.concat(M.plan.series.slice(1)),M.tm.series,age0,life,ret,M.F.total,sp?yr:(a=>a));
+  if(activeTab==="monthly") renderMonthly(M);
 }
 
 function draw(pS,tS,x0,x1,ret,tgt,xl){
@@ -643,6 +704,7 @@ setupCsvControls(()=>S,plan=>{
  S=plan;loadError=false;pendingAgeError="";cappedPlanAge=false;
  save();render();return !storageError;
 },SEC,ASM,stateError);
+document.getElementById("monthlyScenario").addEventListener("change",()=>{if(activeTab==="monthly"&&!stateError()) renderMonthly(model());});
 
 render();
 </script>
