@@ -11,7 +11,7 @@ Everything runs in your browser, with no backend, account or build step.
 - If you retire tomorrow: how many years your current investments would last, the first-year withdrawal and the withdrawal rate.
 - Corpus over time: a chart of both scenarios (retire as planned, retire tomorrow).
 - Spending cuts: how much longer the FIRE number lasts if you spend 2% to 10% less after retiring.
-- PDF report of your inputs, results and assumptions.
+- CSV export and import of your complete input plan, so you can return to it later.
 
 ## What you enter
 
@@ -26,7 +26,7 @@ Everything runs in your browser, with no backend, account or build step.
 | One-time goals | Child's college, wedding, a car replacement, paid from investments in the year they fall due. |
 | Assumptions | General, healthcare and education inflation, return after retiring, safe withdrawal rate, yearly SIP step-up, medical or emergency reserve. |
 
-The page loads with example figures. Edit, add or remove rows, or hit **Reset to example**.
+The page loads with example figures. Edit, add or remove rows, or hit **Reset**. Changing your current age shifts retirement, spouse, income-start, goal and plan-until ages by the same number of years, keeping their timing relative to today. Plan-until age stops at 100, including when a current-age change would shift it higher. Changing a spouse's age shifts their retirement age. You can then adjust any age separately. Invalid values stop the calculation until corrected. If a goal before retirement cannot be fully funded when it is due, the planned corpus is marked unavailable and the extra SIP calculation includes that goal.
 
 ## How the FIRE number is calculated
 
@@ -41,19 +41,21 @@ The "How the FIRE number is built" panel in the app shows each line.
 
 Use it online at https://ukkit.github.io/FIREdrill/.
 
+For a guided layout, open [tabbed.html](tabbed.html) from the served folder (or `/tabbed.html` on the same host). Its Overview explains the calculator; Household, Spending, Investments and Future plans collect inputs; the highlighted Outlook tab shows the two main results; Assumptions and Insights provide the rates and detailed views. The original `index.html` remains the single-page view.
+
 To run it yourself, download or clone the repo and serve the folder:
 
 ```sh
 python3 -m http.server
 ```
 
-Then open http://localhost:8000 in a browser. Opening `index.html` directly also works.
+Then open http://localhost:8000 in a browser. Opening `index.html` directly also works when `csv-plan.js` is in the same folder.
 
-It is a single static file, so any static host will serve it. The PDF export loads [html2pdf.js](https://github.com/eKoopmans/html2pdf.js) from cdnjs, so that one feature needs an internet connection.
+These are static files, so any static host will serve the folder. **Keep `csv-plan.js` beside `index.html` and `tabbed.html` when copying or hosting the calculator.** Both pages load that JavaScript file to initialize CSV import and export; they will not initialize if it is missing. **Export CSV** downloads the current inputs as `firedrill_<ddmmyy>_<hhmmss>.csv`, using your local date and time. **Import CSV** restores a file exported by either layout and replaces the current inputs after validating the whole file. Keep the CSV private: it contains your financial figures. No library or internet connection is needed to run the calculator or use CSV files.
 
 ## Privacy
 
-Inputs are kept in the browser's `sessionStorage` for the current tab only. Nothing is uploaded or shared, and the data is erased when you close the tab.
+Inputs are kept in the browser's `sessionStorage` for the current tab only. The calculator makes no network requests after page load and does not upload inputs or imported CSV files. The tab's stored data is normally cleared when the tab closes, subject to browser session-restore behavior. An exported CSV remains on your device until you delete it.
 
 ## Limitations
 
